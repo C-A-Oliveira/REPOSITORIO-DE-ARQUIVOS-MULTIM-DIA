@@ -1,5 +1,5 @@
 # REPOSITORIO DE ARQUIVOS MULTIMIDIA
-PROJETO DA DISCIPLINA SISTEMAS DISTRIBUÍDOS II
+PROJETO DA DISCIPLINA SISTEMAS DISTRIBUÍDOS II\n
 Instruções gerais / requisitos:
 
 Linguagens de Programação: Java ou C++ (aplicação desktop);

@@ -9,7 +9,7 @@ Segurança da Comunicação: Criptografia (simétrica e/ou assimétrica);
 Emprego de Programação Paralela e Concorrente (servidor e cliente).
 
 Características:
->	Arquitetura Centralizada;
->	Abstração de Sistemas Arquivos (SO);
->	Armazenamento de arquivos em frações (partes);
->	Distribuição de armazenamento em, no mínimo, dois nós servidores;
+>	Arquitetura Centralizada
+>	Abstração de Sistemas Arquivos (SO)
+>	Armazenamento de arquivos em frações (partes)
+>	Distribuição de armazenamento em, no mínimo, dois nós servidores

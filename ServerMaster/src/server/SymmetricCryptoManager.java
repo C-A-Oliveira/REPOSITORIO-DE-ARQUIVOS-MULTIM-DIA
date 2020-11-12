@@ -36,7 +36,7 @@ public final class SymmetricCryptoManager implements Encryptor, Decriptor {
 	public byte[] decryptData(byte[] data) {
 		try {
 	    	Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-			cipher.init(Cipher.ENCRYPT_MODE, key);
+			cipher.init(Cipher.DECRYPT_MODE, key);
 		    return cipher.doFinal(data);
 		} catch (Exception e) {
 			e.printStackTrace();

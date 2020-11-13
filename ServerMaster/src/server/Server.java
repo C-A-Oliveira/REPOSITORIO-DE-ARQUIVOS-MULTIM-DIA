@@ -8,7 +8,7 @@ import java.security.*;
 
 public class Server {
 	public static void main(String[] args) throws IOException {
-        testAESEncryptionAndDecryption();
+		testAESEncryptionAndDecryption();
 		// server is listening on port 5056
 		ServerSocket ss = new ServerSocket(5056);
 
@@ -38,6 +38,28 @@ public class Server {
 				s.close();
 				e.printStackTrace();
 			}
+		}
+	}
+
+	private static void testAESEncryptionAndDecryption() {
+		try {
+			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
+			
+			String text = "Teste jmajsdjsad sdak";
+			byte[] bytes = text.getBytes();
+			byte[] encryptedBytes = smanager.encryptData(bytes);
+			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
+			
+			
+			String encryptedText = new String(encryptedBytes);
+			String decryptedText = new String(decryptedBytes);
+			
+			System.out.println(text);
+			System.out.println(encryptedText);
+			System.out.println(decryptedText);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }
@@ -89,28 +111,6 @@ class ClientHandler extends Thread {
 			this.dos.close();
 
 		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private static void testAESEncryptionAndDecryption() {
-		try {
-			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
-			
-			String text = "Teste jmajsdjsad sdak";
-			byte[] bytes = text.getBytes();
-			byte[] encryptedBytes = smanager.encryptData(bytes);
-			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
-			
-			
-			String encryptedText = new String(encryptedBytes);
-			String decryptedText = new String(decryptedBytes);
-			
-			System.out.println(text);
-			System.out.println(encryptedText);
-			System.out.println(decryptedText);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

@@ -1,5 +1,5 @@
 package server;
 
-public interface Decriptor {
+public interface Decryptor {
 	public byte[] decryptData(byte[] data);
 }

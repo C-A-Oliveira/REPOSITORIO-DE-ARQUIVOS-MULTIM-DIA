@@ -3,7 +3,9 @@ package server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.net.ServerSocket;
@@ -22,9 +24,11 @@ public class Server {
 
 	/**
 	 * @param args the command line arguments
+	 * @throws UnsupportedEncodingException 
 	 */
 	public static void main(String[] args) {
 		// TODO code application logic here
+		testAESEncryptionAndDecryption();
 		int port = 33334;
 		try {
 			
@@ -83,6 +87,28 @@ public class Server {
 		} catch (IOException ex) {
 
 			System.out.println("ERRO AO CONECTAR >> " + ex.getMessage());
+		}
+	}
+	
+	private static void testAESEncryptionAndDecryption() {
+		try {
+			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
+			
+			String text = "Teste jmajsdjsad sdak";
+			byte[] bytes = text.getBytes();
+			byte[] encryptedBytes = smanager.encryptData(bytes);
+			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
+			
+			
+			String encryptedText = new String(encryptedBytes);
+			String decryptedText = new String(decryptedBytes);
+			
+			System.out.println(text);
+			System.out.println(encryptedText);
+			System.out.println(decryptedText);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }

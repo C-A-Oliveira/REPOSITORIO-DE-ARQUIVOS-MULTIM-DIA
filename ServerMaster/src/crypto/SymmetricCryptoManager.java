@@ -1,4 +1,4 @@
-package server;
+package crypto;
 
 import java.security.Key;
 import java.security.SecureRandom;

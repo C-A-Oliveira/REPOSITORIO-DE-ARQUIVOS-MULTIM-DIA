@@ -17,12 +17,25 @@ public class Client
         try
         { 
             Scanner scn = new Scanner(System.in); 
-              
+            
             // getting localhost ip 
-            InetAddress ip = InetAddress.getByName("localhost"); 
-      
+            
+            //InetAddress ip = InetAddress.getByName("localhost"); 
+            int sPort = Integer.parseInt(args[1]);
+            int cPort = Integer.parseInt(args[3]);
+            byte[] sip = {0,0,0,0};
+            byte[] cip = {0,0,0,0};
+            String[] S = args[0].replace('.', '-').split("-");
+            for(int i=0; i<4; i++)
+            	sip[i] = Byte.parseByte(S[i]);
+            InetAddress sIP = InetAddress.getByAddress(sip);
+            String[] C = args[2].replace('.', '-').split("-");
+            for(int i=0; i<4; i++)
+            	cip[i] = Byte.parseByte(C[i]);
+            InetAddress cIP = InetAddress.getByAddress(cip);
+                  
             // establish the connection with server port 5056 
-            Socket s = new Socket(ip, 5056); 
+            Socket s = new Socket(sIP, sPort, cIP, cPort); 
       
             // obtaining input and out streams 
             DataInputStream dis = new DataInputStream(s.getInputStream()); 
@@ -35,7 +48,8 @@ public class Client
                 System.out.println(dis.readUTF()); 
                 
                 
-                String tosend = scn.nextLine(); 
+                String input = scn.nextLine();
+                String tosend = input;
                 dos.writeUTF(tosend); 
                   
                 // If client sends exit,close this connection  

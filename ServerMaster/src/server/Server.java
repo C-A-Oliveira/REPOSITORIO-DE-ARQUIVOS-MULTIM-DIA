@@ -3,14 +3,17 @@ package server;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+
+import crypto.SymmetricCryptoManager;
+
 import java.net.*;
 import java.security.*;
 
 public class Server {
 	public static void main(String[] args) throws IOException {
-		testAESEncryptionAndDecryption();
-		// server is listening on port 5056
-		ServerSocket ss = new ServerSocket(5056);
+		//testAESEncryptionAndDecryption();
+		// server is listening on port 33333
+		ServerSocket ss = new ServerSocket(33333);
 
 		// running infinite loop for getting client request
 		while (true) {
@@ -30,7 +33,13 @@ public class Server {
 
 				// create a new thread object
 				Thread t = new ClientHandler(s, dis, dos);
-
+				byte[] cADDR = s.getInetAddress().getAddress();
+				String name = String.valueOf(cADDR[0]) + "." 
+							+ String.valueOf(cADDR[1]) + "." 
+							+ String.valueOf(cADDR[2]) + "." 
+							+ String.valueOf(cADDR[3]) + ":"
+							+ s.getPort();
+				t.setName(name);
 				// Invoking the start() method
 				t.start();
 
@@ -41,27 +50,26 @@ public class Server {
 		}
 	}
 
-	private static void testAESEncryptionAndDecryption() {
-		try {
-			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
-			
-			String text = "Teste jmajsdjsad sdak";
-			byte[] bytes = text.getBytes();
-			byte[] encryptedBytes = smanager.encryptData(bytes);
-			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
-			
-			
-			String encryptedText = new String(encryptedBytes);
-			String decryptedText = new String(decryptedBytes);
-			
-			System.out.println(text);
-			System.out.println(encryptedText);
-			System.out.println(decryptedText);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+//	private static void testAESEncryptionAndDecryption() {
+//		try {
+//			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
+//
+//			String text = "Teste jmajsdjsad sdak";
+//			byte[] bytes = text.getBytes();
+//			byte[] encryptedBytes = smanager.encryptData(bytes);
+//			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
+//
+//			String encryptedText = new String(encryptedBytes);
+//			String decryptedText = new String(decryptedBytes);
+//
+//			System.out.println(text);
+//			System.out.println(encryptedText);
+//			System.out.println(decryptedText);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
 }
 
 //ClientHandler class 

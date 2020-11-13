@@ -1,92 +1,95 @@
 package server;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.net.ServerSocket;
+import java.io.*;
+import java.text.*;
+import java.util.*;
+import java.net.*;
+import java.security.*;
 
-/**
- *
- * @author seaso
- */
 public class Server {
+	public static void main(String[] args) throws IOException {
+        testAESEncryptionAndDecryption();
+		// server is listening on port 5056
+		ServerSocket ss = new ServerSocket(5056);
 
-	private final Socket socket;
+		// running infinite loop for getting client request
+		while (true) {
+			Socket s = null;
 
-	private Server(Socket socket) {
-		this.socket = socket;
+			try {
+				// socket object to receive incoming client requests
+				s = ss.accept();
+
+				System.out.println("A new client is connected : " + s);
+
+				// obtaining input and out streams
+				DataInputStream dis = new DataInputStream(s.getInputStream());
+				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+
+				System.out.println("Assigning new thread for this client");
+
+				// create a new thread object
+				Thread t = new ClientHandler(s, dis, dos);
+
+				// Invoking the start() method
+				t.start();
+
+			} catch (Exception e) {
+				s.close();
+				e.printStackTrace();
+			}
+		}
+	}
+}
+
+//ClientHandler class 
+class ClientHandler extends Thread {
+	final DataInputStream dis;
+	final DataOutputStream dos;
+	final Socket s;
+
+	// Constructor
+	public ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+		this.s = s;
+		this.dis = dis;
+		this.dos = dos;
 	}
 
-	/**
-	 * @param args the command line arguments
-	 * @throws UnsupportedEncodingException 
-	 */
-	public static void main(String[] args) {
-		// TODO code application logic here
-		testAESEncryptionAndDecryption();
-		int port = 33334;
-		try {
-			
-			ArrayList<ServerSocket> connectons = new ArrayList<ServerSocket>();
-//			for (int c = 0; c < 100; c++) {
-//				connectons.add(new ServerSocket(port + c));
-//			}
-			
-			ServerSocket socket = new ServerSocket(port);
-			System.out.println("Socket Criado");
-			while (true) {
-				System.out.println("Aguardando cliente...");
-				
-//				for (ServerSocket sockett : connectons) {
-//					try (Socket client = sockett.accept()) {
-//						try (InputStream in = client.getInputStream(); OutputStream out = client.getOutputStream();) {
-//							byte[] buffer = new byte[2048];
-//							int n;
-//							while ((n = in.read(buffer)) > 0) {
-//								for (int i = 0; i < n; i++) {
-//									System.out.printf("%02d", buffer[i]);
-//								}
-//								System.out.println(sockett.getInetAddress().toString());
-//								// ordena
-//								Arrays.sort(buffer, 0, n);
-//								// ecoa ordenado
-//								out.write(buffer);
-//
-//							}
-//
-//						}
-//					}
-//					
-//				}
-				
-				try (Socket client = socket.accept()) {
-					try (InputStream in = client.getInputStream(); OutputStream out = client.getOutputStream();) {
-						byte[] buffer = new byte[2048];
-						int n;
-						while ((n = in.read(buffer)) > 0) {
-							for (int i = 0; i < n; i++) {
-								System.out.printf("%02d", buffer[i]);
-							}
-							System.out.println("\n" + socket.getInetAddress().toString());
-							// ordena
-							Arrays.sort(buffer, 0, n);
-							// ecoa ordenado
-							out.write(buffer);
+	@Override
+	public void run() {
+		String received;
+		String toreturn;
+		while (true) {
+			try {
 
-						}
+				// Ask user what he wants
+				dos.writeUTF("What's your message?");
 
-					}
+				// receive the answer from client
+				received = dis.readUTF();
+
+				if (received.equals("Exit")) {
+					System.out.println("Client " + this.s + " sends exit...");
+					System.out.println("Closing this connection.");
+					this.s.close();
+					System.out.println("Connection closed");
+					break;
 				}
-				
-			}
-		} catch (IOException ex) {
 
-			System.out.println("ERRO AO CONECTAR >> " + ex.getMessage());
+				System.out.println("received message from client" + this.s.getPort() + "! >> " + received);
+				dos.writeUTF("server response: received message from client! >> " + received);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		try {
+			// closing resources
+			this.dis.close();
+			this.dos.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	

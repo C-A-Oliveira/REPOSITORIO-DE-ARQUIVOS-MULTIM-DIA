@@ -22,6 +22,12 @@ public class Server {
 			try {
 				// socket object to receive incoming client requests
 				s = ss.accept();
+				byte[] cADDR = s.getInetAddress().getAddress();
+				String name = String.valueOf(cADDR[0]) + "." 
+							+ String.valueOf(cADDR[1]) + "." 
+							+ String.valueOf(cADDR[2]) + "." 
+							+ String.valueOf(cADDR[3]) + ":"
+							+ s.getPort();
 
 				System.out.println("A new client is connected : " + s);
 
@@ -29,18 +35,11 @@ public class Server {
 				DataInputStream dis = new DataInputStream(s.getInputStream());
 				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
-				System.out.println("Assigning new thread for this client");
+				System.out.println("Assigning new thread client " + name);
+				Thread t = new ClientHandler(s, dis, dos);
 
 				// create a new thread object
-				Thread t = new ClientHandler(s, dis, dos);
-				byte[] cADDR = s.getInetAddress().getAddress();
-				String name = String.valueOf(cADDR[0]) + "." 
-							+ String.valueOf(cADDR[1]) + "." 
-							+ String.valueOf(cADDR[2]) + "." 
-							+ String.valueOf(cADDR[3]) + ":"
-							+ s.getPort();
 				t.setName(name);
-				// Invoking the start() method
 				t.start();
 
 			} catch (Exception e) {

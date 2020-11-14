@@ -4,6 +4,7 @@ import java.io.*;
 import java.text.*;
 import java.util.*;
 
+import crypto.AsymmetricCryptoManager;
 import crypto.SymmetricCryptoManager;
 
 import java.net.*;
@@ -11,7 +12,7 @@ import java.security.*;
 
 public class Server {
 	public static void main(String[] args) throws IOException {
-		//testAESEncryptionAndDecryption();
+//		testAESEncryptionAndDecryption();
 		// server is listening on port 33333
 		ServerSocket ss = new ServerSocket(33333);
 
@@ -49,26 +50,44 @@ public class Server {
 		}
 	}
 
-//	private static void testAESEncryptionAndDecryption() {
-//		try {
-//			SymmetricCryptoManager smanager = new SymmetricCryptoManager();
-//
-//			String text = "Teste jmajsdjsad sdak";
-//			byte[] bytes = text.getBytes();
-//			byte[] encryptedBytes = smanager.encryptData(bytes);
-//			byte[] decryptedBytes = smanager.decryptData(encryptedBytes);
-//
-//			String encryptedText = new String(encryptedBytes);
-//			String decryptedText = new String(decryptedBytes);
-//
-//			System.out.println(text);
-//			System.out.println(encryptedText);
-//			System.out.println(decryptedText);
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
+	private static void testAESEncryptionAndDecryption() {
+		try {
+			
+			// Server generates key pair
+			KeyPair keyPair = AsymmetricCryptoManager.generateKeyPair();
+			
+			
+			// Client generates symmetric key
+			SymmetricCryptoManager clientManager = new SymmetricCryptoManager();
+			byte[] encodedKey = clientManager.getKey().getEncoded();
+			
+			// Client request server public key
+			byte[] encodedPublicKey = keyPair.getPublic().getEncoded();
+			
+			// Client encode symmetric key and send key to server
+			byte[] encryptedSymmetricKey = AsymmetricCryptoManager.encryptData(encodedKey, encodedPublicKey);
+			
+			// Server decode symmetric key
+			byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(encryptedSymmetricKey, keyPair.getPrivate());
+			
+			SymmetricCryptoManager serverManager = new SymmetricCryptoManager(decryptedSymmetricKey);
+
+			String text = "this is a very long text which would cause RSA to fail";
+			byte[] bytes = text.getBytes();
+			byte[] encryptedBytes = clientManager.encryptData(bytes);
+			byte[] decryptedBytes = serverManager.decryptData(encryptedBytes);
+
+			String encryptedText = new String(encryptedBytes);
+			String decryptedText = new String(decryptedBytes);
+
+			System.out.println(text);
+			System.out.println(encryptedText);
+			System.out.println(decryptedText);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }
 
 //ClientHandler class 

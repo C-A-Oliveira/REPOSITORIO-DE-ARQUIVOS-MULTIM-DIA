@@ -1,20 +1,20 @@
 package crypto;
 
 import java.security.Key;
-import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
-public final class SymmetricCryptoManager implements Encryptor, Decryptor {
+public final class SymmetricCryptoManager {
 	private Key key;
-	private byte[] iv;
+	
+	public SymmetricCryptoManager(byte[] encodedKey) {
+		this(new SecretKeySpec(encodedKey, "DES"));
+	}
 	
 	public SymmetricCryptoManager(Key key) {
 		this.key = key;
-		this.iv = generateIV();
 	}
 	
 	public SymmetricCryptoManager() throws Exception {
@@ -22,16 +22,8 @@ public final class SymmetricCryptoManager implements Encryptor, Decryptor {
 	}
 	
 	private static Key generateSymmetricKey() throws Exception {
-		KeyGenerator generator = KeyGenerator.getInstance("AES");
-		SecretKey key = generator.generateKey();
-		return key;
-	}
-	
-	private static byte[] generateIV() {
-		SecureRandom random = new SecureRandom();
-		byte[] iv = new byte [16];
-		random.nextBytes(iv);
-		return iv;
+		KeyGenerator generator = KeyGenerator.getInstance("DES");
+		return generator.generateKey();
 	}
 	
 	public Key getKey() {
@@ -44,8 +36,8 @@ public final class SymmetricCryptoManager implements Encryptor, Decryptor {
 	
 	public byte[] encryptData(byte[] data) {
 	    try {
-	    	Cipher cipher = Cipher.getInstance(key.getAlgorithm() + "/CBC/PKCS5Padding"); 
-			cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+	    	Cipher cipher = Cipher.getInstance(key.getAlgorithm() + "/ECB/PKCS5Padding"); 
+			cipher.init(Cipher.ENCRYPT_MODE, key);
 		    return cipher.doFinal(data);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -55,8 +47,8 @@ public final class SymmetricCryptoManager implements Encryptor, Decryptor {
 	
 	public byte[] decryptData(byte[] data) {
 		try {
-	    	Cipher cipher = Cipher.getInstance(key.getAlgorithm() + "/CBC/PKCS5Padding");
-			cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+	    	Cipher cipher = Cipher.getInstance(key.getAlgorithm() + "/ECB/PKCS5Padding");
+			cipher.init(Cipher.DECRYPT_MODE, key);
 		    return cipher.doFinal(data);
 		} catch (Exception e) {
 			e.printStackTrace();

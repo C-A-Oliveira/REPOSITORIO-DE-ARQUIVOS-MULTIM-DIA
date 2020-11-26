@@ -184,7 +184,7 @@ class ClientHandler extends Thread {
 
 		// BODY
 		j = 0;
-		for (int i = header.length; i < _body.length; i++) {
+		for (int i = header.length; i < _body.length+header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
@@ -235,7 +235,7 @@ class ClientHandler extends Thread {
 
 		// BODY
 		j = 0;
-		for (int i = header.length; i < _body.length; i++) {
+		for (int i = header.length; i < _body.length+header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}

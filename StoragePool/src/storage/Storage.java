@@ -16,63 +16,10 @@ import java.security.*;
 
 public class Storage {
 
+	//Constantes de cabecalho
 	public static final byte ENVIA_ARQ_SERVER = (byte) 0x02;
 	public static final byte RECEBE_ARQ_SERVER = (byte) 0x01;
 	public static final byte RECEBE_REQ_SERVER = (byte) 0x05;
-
-	public static byte[][] splitMessage(byte[] _msg) {
-
-		int sizeHeader = 1 + Long.BYTES;
-		int sizeBody = _msg.length - sizeHeader;
-		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
-
-		byte[] header = new byte[sizeHeader];
-		byte[] body = new byte[sizeBody];
-
-		for (int i = 0; i < header.length; i++) {
-			header[i] = _msg[i];
-		}
-
-		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
-			body[j] = _msg[i];
-			j++;
-		}
-		j = 0;
-
-		splitMsg[0] = header;
-		splitMsg[1] = body;
-
-		return splitMsg;
-	}
-
-	public static byte[] makeMessage(byte _mode, byte[] _bytesId, byte[] _body) {
-
-		byte[] header = new byte[1 + Long.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-
-		// Faz o header
-		header[0] = _mode;
-		int j = 0;
-		for (int i = 1; i < header.length; i++) {
-			header[i] = _bytesId[j];
-			j++;
-		}
-
-		// Faz o Message
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		j = 0;
-		for (int i = header.length; i < _body.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-		// Output
-		return message;
-	}
 
 	public static void main(String[] args) throws IOException {
 //		testAESEncryptionAndDecryption();
@@ -149,6 +96,67 @@ public class Storage {
 		ss.close();
 	}
 
+	// ============ Metodos de mensagem ============================
+	// Divide mensagem em cabecalho e corpo. retorna um array de byte[] (array de
+	// array)
+	public static byte[][] splitMessage(byte[] _msg) {
+
+		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
+		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
+		int sizeBody = _msg.length - sizeHeader;
+		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
+
+		byte[] header = new byte[sizeHeader];
+		byte[] body = new byte[sizeBody];
+
+		for (int i = 0; i < header.length; i++) {
+			header[i] = _msg[i];
+		}
+
+		int j = 0;
+		for (int i = header.length; i < body.length; i++) {
+			body[j] = _msg[i];
+			j++;
+		}
+		j = 0;
+
+		splitMsg[0] = header;
+		splitMsg[1] = body;
+
+		return splitMsg;
+	}
+
+	// Cria a mensagem a ser enviada, com cabecalho
+	public static byte[] makeMessage(byte _mode, byte[] _bytesId, byte[] _body) {
+
+		byte[] header = new byte[1 + Long.BYTES];
+		byte[] message = new byte[header.length + _body.length];
+
+		// Faz o header
+		header[0] = _mode;
+		int j = 0;
+		for (int i = 1; i < header.length; i++) {
+			header[i] = _bytesId[j];
+			j++;
+		}
+
+		// Faz o Message
+		for (int i = 0; i < header.length; i++) {
+			message[i] = header[i];
+		}
+
+		j = 0;
+		for (int i = header.length; i < _body.length; i++) {
+			message[i] = _body[j];
+			j++;
+		}
+
+		// Output
+		return message;
+	}
+
+	// ===================== METODOS de arquivo ===============================
+	// retorna os bytes[] de um arquivo especificado
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
 
@@ -163,6 +171,7 @@ public class Storage {
 	}
 
 	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
+	// Retorna os bytes de um arquivo
 	private static byte[] readContentIntoByteArray(File file) {
 		FileInputStream fileInputStream = null;
 		byte[] bFile = new byte[(int) file.length()];
@@ -180,6 +189,7 @@ public class Storage {
 		return bFile;
 	}
 
+	// Cria o arquivo
 	private static void writeArq(byte[] _arq) {
 
 		// TODO: implement, so pra teste
@@ -197,6 +207,7 @@ public class Storage {
 		// return arq;
 	}
 
+	// AES
 	private static void testAESEncryptionAndDecryption() {
 		try {
 

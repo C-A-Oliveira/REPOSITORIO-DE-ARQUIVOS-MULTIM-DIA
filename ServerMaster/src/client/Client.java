@@ -19,11 +19,11 @@ public class Client {
 	public static final byte ENVIA_REQ = (byte) 0x04;
 
 	public static byte[] longToBytes(long x) {
-	    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-	    buffer.putLong(x);
-	    return buffer.array();
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(x);
+		return buffer.array();
 	}
-	
+
 	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
 
 		byte[] header = new byte[1 + Long.BYTES];
@@ -55,7 +55,7 @@ public class Client {
 
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
-		throw new UnsupportedOperationException("TODO: Not implemented yet");//TODO: implement
+		throw new UnsupportedOperationException("TODO: Not implemented yet");// TODO: implement
 		// return b;
 	}
 
@@ -92,33 +92,48 @@ public class Client {
 			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
 					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
 			t.setName(name);
+			System.out.println("Iniciando Thread para recebimento de arquivos");
 			t.start();
 
-			String opcao = scn.nextLine();
-			byte modo = 0x00;
-			byte[] bytes = null;
+			boolean loop = true;
+			while (loop) {
 
-			switch (opcao) {
-			case "upload":
-				modo = ENVIA_ARQ;
-				System.out.println("Escreva o nome do arquivo a ser enviado: ");
-				String upNomeArq = scn.nextLine();
-				bytes = getArq(upNomeArq);
-			case "download":
-				modo = ENVIA_REQ;
-				System.out.println("Escreva o nome do arquivo a ser baixado: ");
-				String nomeArq = scn.nextLine();
-				bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
+				System.out.println("===SELECAO DE OPCAO===");
+				System.out.println("Digite 'upload' para enviar um arquivo.");
+				System.out.println("Digite 'download' para baixar um arquivo.");
+				System.out.println("Digite 'sair' para sair.");
+				String opcao = scn.nextLine();
+				byte modo = 0x00;
+				byte[] bytes = null;
+
+				switch (opcao) {
+				case "upload":
+					modo = ENVIA_ARQ;
+					System.out.println("Escreva o nome do arquivo a ser enviado: ");
+					String upNomeArq = scn.nextLine();
+					bytes = getArq(upNomeArq);
+				case "download":
+					modo = ENVIA_REQ;
+					System.out.println("Escreva o nome do arquivo a ser baixado: ");
+					String nomeArq = scn.nextLine();
+					bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
+				case "closed":
+					System.out.println("Fechando conexao: " + s);
+					s.close();
+					System.out.println("Conexao fechada.");
+					loop = false;
+				}
+				
+				if(opcao != "closed") {
+					byte[] message = makeMessage(modo, id, bytes);
+	
+					dos.write(message);
+	
+					// printing date or time as requested by client
+					String received = dis.readUTF();
+					System.out.println(received);
+				}
 			}
-
-			byte[] message = makeMessage(modo, id, bytes);
-
-			dos.write(message);
-
-			// printing date or time as requested by client
-			String received = dis.readUTF();
-			System.out.println(received);
-
 			// closing resources
 			scn.close();
 			dis.close();
@@ -214,7 +229,7 @@ class ServerHandler extends Thread {
 	}
 
 	public static void writeArq(byte[] arq) {
-		throw new UnsupportedOperationException(); //TODO: implement
+		throw new UnsupportedOperationException(); // TODO: implement
 	}
 
 }

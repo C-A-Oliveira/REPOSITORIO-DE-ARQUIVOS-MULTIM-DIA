@@ -21,36 +21,38 @@ public class Server {
 		ServerSocket ss = new ServerSocket(33333);
 
 		// running infinite loop for getting client request
-		while (true) {
-			Socket s = null;
+		boolean loop = true;
+		while (loop) {
+			Socket socket = null;
 
 			try {
 				// socket object to receive incoming client requests
-				s = ss.accept();
-				byte[] cADDR = s.getInetAddress().getAddress();
+				socket = ss.accept();
+				byte[] cADDR = socket.getInetAddress().getAddress();
 				String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
-						+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+						+ "." + String.valueOf(cADDR[3]) + ":" + socket.getPort();
 
-				System.out.println("A new client is connected : " + s);
+				System.out.println("A new client is connected : " + socket);
 
 				// obtaining input and out streams
-				DataInputStream dis = new DataInputStream(s.getInputStream());
-				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+				DataInputStream dis = new DataInputStream(socket.getInputStream());
+				DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
 				System.out.println("Assigning new thread client " + name);
-				Thread t = new ClientHandler(s, dis, dos);
+				Thread t = new ClientHandler(socket, dis, dos);
 
 				// create a new thread object
 				t.setName(name);
 				t.start();
-
-				ss.close();
+				
 
 			} catch (Exception e) {
-				s.close();
 				e.printStackTrace();
+				System.out.println("socket Closed");
+				socket.close();
 			}
 		}
+		ss.close();
 	}
 
 	private static void testAESEncryptionAndDecryption() {
@@ -218,6 +220,7 @@ class ClientHandler extends Thread {
 	public void run() {
 		// String received;
 		ArrayList<Byte> receivedList = new ArrayList<Byte>();
+		System.out.println("Iniciando Server");
 		while (true) {
 			try {
 

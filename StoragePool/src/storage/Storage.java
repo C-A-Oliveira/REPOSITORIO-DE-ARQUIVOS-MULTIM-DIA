@@ -127,26 +127,38 @@ public class Storage {
 	}
 
 	// Cria a mensagem a ser enviada, com cabecalho
-	public static byte[] makeMessage(byte _mode, byte[] _bytesId, byte[] _body) {
+	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _body) {
 
-		byte[] header = new byte[1 + Long.BYTES];
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
 		byte[] message = new byte[header.length + _body.length];
 
-		// Faz o header
-		header[0] = _mode;
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = 0; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+		}
+
+		// Modo
+		header[Integer.BYTES] = _mode;
+
+		// Usuario
+		byte[] bytesId = _id;
 		int j = 0;
-		for (int i = 1; i < header.length; i++) {
-			header[i] = _bytesId[j];
+		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
+			header[i] = bytesId[j];
 			j++;
 		}
 
-		// Faz o Message
+		// MESSAGE
+		// HEADER
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
+		// BODY
 		j = 0;
-		for (int i = header.length; i < _body.length; i++) {
+		for (int i = header.length; i < _body.length + header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
@@ -205,6 +217,21 @@ public class Storage {
 		System.out.println("Arquivo criado.");
 
 		// return arq;
+	}
+	
+	//Metodo utiliario
+	// Fonte:
+	// https://stackoverflow.com/questions/1936857/convert-integer-into-byte-array-java/1936865
+	// Retorna os bytes[] de um int
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
+
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
 	}
 
 	// AES

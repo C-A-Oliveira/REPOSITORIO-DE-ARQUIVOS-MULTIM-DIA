@@ -155,7 +155,7 @@ class ClientHandler extends Thread {
 				byte[] user = new byte[header.length - 1];
 				System.arraycopy(header, 1, user, 0, header.length - 1);
 
-				// TODO: definir storage a ser enviado (dos eh referente a cliente?)
+				// !!!!!!!!!! TODO: definir storage a ser enviado (dos eh referente a cliente?)
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 					System.out.println("Recebendo arquivo do cliente");
@@ -257,7 +257,7 @@ class ClientHandler extends Thread {
 
 		// Output
 		return message;
-	}// fim do make message
+	}
 
 	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _body) {
 
@@ -297,9 +297,10 @@ class ClientHandler extends Thread {
 
 		// Output
 		return message;
-	}// fim do segundo make message
+	}
 
-	//Retorna um array de byte[] (array de array), o primeiro eh o cabecalho e o segundo eh o corpo da mensagem
+	// Retorna um array de byte[] (array de array), o primeiro eh o cabecalho e o
+	// segundo eh o corpo da mensagem
 	public static byte[][] splitMessage(byte[] _msg) {
 
 		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
@@ -326,8 +327,8 @@ class ClientHandler extends Thread {
 
 		return splitMsg;
 	}
-	
-	//========== METODOS UTILITARIOS =================
+
+	// ========== METODOS UTILITARIOS =================
 
 	public static byte[] longToBytes(long x) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);

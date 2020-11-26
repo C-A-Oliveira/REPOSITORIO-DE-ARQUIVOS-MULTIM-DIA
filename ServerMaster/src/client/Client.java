@@ -1,118 +1,220 @@
 package client;
 // Java implementation for a client 
+
 // Save file as Client.java 
-  
-import java.io.*; 
+
+import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.Scanner; 
-  
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Scanner;
+
 // Client class 
-public class Client  
-{ 
-	private static long id;
-	
-	private static final byte UPLOAD = (byte)0x00;
-	private static final byte DOWNLOAD = (byte)0x01;
+public class Client {
+	private static long id; // Acho que String nao possui tamanho confiavel, isso dificulta o uso de header
+
+	public static final byte ENVIA_ARQ = (byte) 0x00;
+	public static final byte RECEBE_ARQ = (byte) 0x03;
+	public static final byte ENVIA_REQ = (byte) 0x04;
+
+	public static byte[] longToBytes(long x) {
+	    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+	    buffer.putLong(x);
+	    return buffer.array();
+	}
 	
 	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
-    	
-        byte[] header = new byte[1+Long.BYTES];
-        byte[] message = new byte[header.length + _body.length];
-        
-        //Faz o header
-        header[0] = _mode;
-        byte[] bytesId = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(_id).array();
-        int j = 0;
-        for(int i=1;i<header.length;i++) {
-        	header[i] = bytesId[j];
-        	j++;
-        }
-        
-        //Faz o Message
-        for(int i=0;i<header.length;i++) {
-        	message[i] = header[i];
-        }
-        
-        j = 0;
-        for(int i=header.length;i<_body.length;i++) {
-        	message[i] = _body[j];
-        	j++;
-        }
-        
-        //Output
-        return message;
-    }
-	
-    public static void main(String[] args) throws IOException  
-    { 
-    	
-        try
-        { 
-            Scanner scn = new Scanner(System.in); 
-            
-            // getting localhost ip 
-            
-            //InetAddress ip = InetAddress.getByName("localhost"); 
-            int sPort = Integer.parseInt(args[1]);
-            int cPort = Integer.parseInt(args[3]);
-            byte[] sip = {0,0,0,0};
-            byte[] cip = {0,0,0,0};
-            String[] S = args[0].replace('.', '-').split("-");
-            for(int i=0; i<4; i++)
-            	sip[i] = Byte.parseByte(S[i]);
-            InetAddress sIP = InetAddress.getByAddress(sip);
-            String[] C = args[2].replace('.', '-').split("-");
-            for(int i=0; i<4; i++)
-            	cip[i] = Byte.parseByte(C[i]);
-            InetAddress cIP = InetAddress.getByAddress(cip);
-                  
-            // establish the connection 
-            Socket s = new Socket(sIP, sPort, cIP, cPort); 
-      
-            // obtaining input and out streams 
-            DataInputStream dis = new DataInputStream(s.getInputStream()); 
-            DataOutputStream dos = new DataOutputStream(s.getOutputStream()); 
-      
-            // the following loop performs the exchange of 
-            // information between client and client handler 
-            while (true)  
-            { 
-                System.out.println(dis.readUTF()); 
-                
-                
-                String input = scn.nextLine();
-                String tosend = input;
-                byte[] bytes = input.getBytes();
-                
-                byte[] message = makeMessage( UPLOAD , id,bytes);//TODO: Mudar primeiro argumento baseado no que o usuario escolher
-                
-                dos.write(message);
-                //dos.writeUTF(tosend); 
-                  
-                // If client sends exit,close this connection  
-                // and then break from the while loop 
-                if(tosend.equals("Exit")) 
-                { 
-                    System.out.println("Closing this connection : " + s); 
-                    s.close(); 
-                    System.out.println("Connection closed"); 
-                    break; 
-                } 
-                  
-                // printing date or time as requested by client 
-                String received = dis.readUTF(); 
-                System.out.println(received); 
-            } 
-              
-            // closing resources 
-            scn.close(); 
-            dis.close(); 
-            dos.close(); 
-        }catch(Exception e){ 
-            e.printStackTrace(); 
-        } 
-    }
-    
-   
-} 
+
+		byte[] header = new byte[1 + Long.BYTES];
+		byte[] message = new byte[header.length + _body.length];
+
+		// Faz o header
+		header[0] = _mode;
+		byte[] bytesId = longToBytes(_id);
+		int j = 0;
+		for (int i = 1; i < header.length; i++) {
+			header[i] = bytesId[j];
+			j++;
+		}
+
+		// Faz o Message
+		for (int i = 0; i < header.length; i++) {
+			message[i] = header[i];
+		}
+
+		j = 0;
+		for (int i = header.length; i < _body.length; i++) {
+			message[i] = _body[j];
+			j++;
+		}
+
+		// Output
+		return message;
+	}
+
+	public static byte[] getArq(String nomeArq) {
+		byte[] b;
+		throw new UnsupportedOperationException("TODO: Not implemented yet");//TODO: implement
+		// return b;
+	}
+
+	public static void main(String[] args) throws IOException {
+		try {
+			Scanner scn = new Scanner(System.in);
+
+			// getting localhost ip
+
+			// InetAddress ip = InetAddress.getByName("localhost");
+			int sPort = Integer.parseInt(args[1]);
+			int cPort = Integer.parseInt(args[3]);
+			byte[] sip = { 0, 0, 0, 0 };
+			byte[] cip = { 0, 0, 0, 0 };
+			String[] S = args[0].replace('.', '-').split("-");
+			for (int i = 0; i < 4; i++)
+				sip[i] = Byte.parseByte(S[i]);
+			InetAddress sIP = InetAddress.getByAddress(sip);
+			String[] C = args[2].replace('.', '-').split("-");
+			for (int i = 0; i < 4; i++)
+				cip[i] = Byte.parseByte(C[i]);
+			InetAddress cIP = InetAddress.getByAddress(cip);
+
+			// establish the connection
+			Socket s = new Socket(sIP, sPort, cIP, cPort);
+
+			// obtaining input and out streams
+			DataInputStream dis = new DataInputStream(s.getInputStream());
+			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+
+			// Thread
+			Thread t = new ServerHandler(s, dis, dos);
+			byte[] address = sIP.getAddress();
+			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
+					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
+			t.setName(name);
+			t.start();
+
+			String opcao = scn.nextLine();
+			byte modo = 0x00;
+			byte[] bytes = null;
+
+			switch (opcao) {
+			case "upload":
+				modo = ENVIA_ARQ;
+				System.out.println("Escreva o nome do arquivo a ser enviado: ");
+				String upNomeArq = scn.nextLine();
+				bytes = getArq(upNomeArq);
+			case "download":
+				modo = ENVIA_REQ;
+				System.out.println("Escreva o nome do arquivo a ser baixado: ");
+				String nomeArq = scn.nextLine();
+				bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
+			}
+
+			byte[] message = makeMessage(modo, id, bytes);
+
+			dos.write(message);
+
+			// printing date or time as requested by client
+			String received = dis.readUTF();
+			System.out.println(received);
+
+			// closing resources
+			scn.close();
+			dis.close();
+			dos.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+}
+
+//Para recebimento dos arquivos
+class ServerHandler extends Thread {
+	final DataInputStream dis;
+	final DataOutputStream dos;
+	final Socket s;
+
+	public static final byte ENVIA_ARQ = (byte) 0x00;
+	public static final byte RECEBE_ARQ = (byte) 0x03;
+	public static final byte ENVIA_REQ = (byte) 0x04;
+
+	public ServerHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+		this.s = s;
+		this.dis = dis;
+		this.dos = dos;
+	}
+
+	public static byte[][] splitMessage(byte[] _msg) {
+
+		int sizeHeader = 1 + Long.BYTES;
+		int sizeBody = _msg.length - sizeHeader;
+		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
+
+		byte[] header = new byte[sizeHeader];
+		byte[] body = new byte[sizeBody];
+
+		for (int i = 0; i < header.length; i++) {
+			header[i] = _msg[i];
+		}
+
+		int j = 0;
+		for (int i = header.length; i < body.length; i++) {
+			body[j] = _msg[i];
+			j++;
+		}
+		j = 0;
+
+		splitMsg[0] = header;
+		splitMsg[1] = body;
+
+		return splitMsg;
+	}
+
+	@Override
+	public void run() {
+		ArrayList<Byte> receivedList = new ArrayList<Byte>();
+		while (true) {
+			try {
+				// Ask user what he wants
+				dos.writeUTF("What's your message?");
+
+				// receive the answer from client
+				// received = dis.readUTF();
+
+				// READING
+				byte[] auxByte = new byte[1];
+				while (dis.read(auxByte) != -1) {
+					receivedList.add(new Byte(auxByte[0]));
+				}
+				byte[] received = new byte[receivedList.size()];
+				for (int i = 0; i < receivedList.size(); i++) {
+					received[i] = receivedList.get(i).byteValue();
+				}
+
+				// DIVIDINDO
+				byte[][] split = splitMessage(received);
+
+				byte[] header = split[0];
+				byte[] body = split[1];
+
+				byte mode = header[0];
+				byte[] user = new byte[header.length - 1];
+				System.arraycopy(header, 1, user, 0, header.length - 1);
+
+				if (mode == RECEBE_ARQ) {
+					writeArq(body);
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void writeArq(byte[] arq) {
+		throw new UnsupportedOperationException(); //TODO: implement
+	}
+
+}

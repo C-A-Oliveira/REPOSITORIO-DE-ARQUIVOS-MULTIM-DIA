@@ -8,9 +8,12 @@ import crypto.AsymmetricCryptoManager;
 import crypto.SymmetricCryptoManager;
 
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.security.*;
 
+
 public class Server {
+	
 	public static void main(String[] args) throws IOException {
 //		testAESEncryptionAndDecryption();
 		// server is listening on port 33333
@@ -102,10 +105,95 @@ class ClientHandler extends Thread {
 		this.dis = dis;
 		this.dos = dos;
 	}
+	
+	public static byte[][] splitMessage(byte[] _msg) {
+		
+		int sizeHeader = 1 + Long.BYTES;
+		int sizeBody = _msg.length - sizeHeader;
+		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
+		
+		byte[] header = new byte[sizeHeader];
+		byte[] body = new byte[sizeBody];
+		
+		for(int i=0;i<header.length;i++) {
+			header[i] = _msg[i];
+		}
+		
+		int j=0;
+		for(int i=header.length;i<body.length;i++) {
+			body[j] = _msg[i];
+			j++;
+		}
+		j=0;
+		
+		
+		splitMsg[0] = header;
+		splitMsg[1] = body;
+		
+		return splitMsg;
+	}
 
+	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
+	    	
+	        byte[] header = new byte[1+Long.BYTES];
+	        byte[] message = new byte[header.length + _body.length];
+	        
+	        //Faz o header
+	        header[0] = _mode;
+	        byte[] bytesId = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(_id).array();
+	        int j = 0;
+	        for(int i=1;i<header.length;i++) {
+	        	header[i] = bytesId[j];
+	        	j++;
+	        }
+	        
+	        //Faz o Message
+	        for(int i=0;i<header.length;i++) {
+	        	message[i] = header[i];
+	        }
+	        
+	        j = 0;
+	        for(int i=header.length;i<_body.length;i++) {
+	        	message[i] = _body[j];
+	        	j++;
+	        }
+	        
+	        //Output
+	        return message;
+	       	}
+	
+	public static byte[] makeMessage(byte _mode, byte[] _bytesId, byte[] _body) {
+    	
+        byte[] header = new byte[1+Long.BYTES];
+        byte[] message = new byte[header.length + _body.length];
+        
+        //Faz o header
+        header[0] = _mode;
+        int j = 0;
+        for(int i=1;i<header.length;i++) {
+        	header[i] = _bytesId[j];
+        	j++;
+        }
+        
+        //Faz o Message
+        for(int i=0;i<header.length;i++) {
+        	message[i] = header[i];
+        }
+        
+        j = 0;
+        for(int i=header.length;i<_body.length;i++) {
+        	message[i] = _body[j];
+        	j++;
+        }
+        
+        //Output
+        return message;
+       	}
+	
 	@Override
 	public void run() {
-		String received;
+		//String received;
+		ArrayList<Byte> receivedList = new ArrayList<Byte>();
 		String toreturn;
 		while (true) {
 			try {
@@ -114,30 +202,69 @@ class ClientHandler extends Thread {
 				dos.writeUTF("What's your message?");
 
 				// receive the answer from client
-				received = dis.readUTF();
-
-				if (received.equals("Exit")) {
-					System.out.println("Client " + this.s + " sends exit...");
-					System.out.println("Closing this connection.");
-					this.s.close();
-					System.out.println("Connection closed");
-					break;
+				//received = dis.readUTF();
+				
+				//READING
+				int read = 0;
+				byte[] auxByte = new byte[1];
+				while( dis.read(auxByte) != -1) {
+					receivedList.add(new Byte(auxByte[0]));
 				}
+				byte[] received = new byte[receivedList.size()];
+				for(int i =0;i<receivedList.size();i++) {
+					received[i] = receivedList.get(i).byteValue();
+				}
+				
+				//DIVIDINDO
+				byte[][] split = splitMessage(received);
+			
+				byte[] header = split[0];
+				byte[] body = split[1];
+				
+				byte mode = header[0];
+				byte[] user = new byte[header.length-1];
+				System.arraycopy(header, 1, user, 0, header.length-1);
+				
+				//TODO: verificar se user tem acesso
+				
+				if(header[0] == (byte)0x00) {
+					//UPLOAD
+					
+					byte[] message = makeMessage( (byte)0x02, user, body);
+					
+					
+					
+				}else {
+					if(header[0] == (byte)0x01) {
+						//DOWNLOAD
+						
+					}
+				}
+				
+				
 
-				System.out.println("received message from client" + this.s.getPort() + "! >> " + received);
-				dos.writeUTF("server response: received message from client! >> " + received);
+//				if (received.equals("Exit")) {
+//					System.out.println("Client " + this.s + " sends exit...");
+//					System.out.println("Closing this connection.");
+//					this.s.close();
+//					System.out.println("Connection closed");
+//					break;
+//				}
+
+				System.out.println("received message from client" + this.s.getPort() + "! >> " + received.toString());
+				dos.writeUTF("server response: received message from client! >> " + received.toString());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 
-		try {
-			// closing resources
-			this.dis.close();
-			this.dos.close();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			// closing resources
+//			this.dis.close();
+//			this.dos.close();
+//
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 }

@@ -3,13 +3,46 @@ package client;
 // Save file as Client.java 
   
 import java.io.*; 
-import java.net.*; 
+import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.Scanner; 
   
 // Client class 
 public class Client  
 { 
-	private static String id;
+	private static long id;
+	
+	private static final byte UPLOAD = (byte)0x00;
+	private static final byte DOWNLOAD = (byte)0x01;
+	
+	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
+    	
+        byte[] header = new byte[1+Long.BYTES];
+        byte[] message = new byte[header.length + _body.length];
+        
+        //Faz o header
+        header[0] = _mode;
+        byte[] bytesId = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(_id).array();
+        int j = 0;
+        for(int i=1;i<header.length;i++) {
+        	header[i] = bytesId[j];
+        	j++;
+        }
+        
+        //Faz o Message
+        for(int i=0;i<header.length;i++) {
+        	message[i] = header[i];
+        }
+        
+        j = 0;
+        for(int i=header.length;i<_body.length;i++) {
+        	message[i] = _body[j];
+        	j++;
+        }
+        
+        //Output
+        return message;
+    }
 	
     public static void main(String[] args) throws IOException  
     { 
@@ -34,7 +67,7 @@ public class Client
             	cip[i] = Byte.parseByte(C[i]);
             InetAddress cIP = InetAddress.getByAddress(cip);
                   
-            // establish the connection with server port 5056 
+            // establish the connection 
             Socket s = new Socket(sIP, sPort, cIP, cPort); 
       
             // obtaining input and out streams 
@@ -50,7 +83,12 @@ public class Client
                 
                 String input = scn.nextLine();
                 String tosend = input;
-                dos.writeUTF(tosend); 
+                byte[] bytes = input.getBytes();
+                
+                byte[] message = makeMessage( UPLOAD , id,bytes);//TODO: Mudar primeiro argumento baseado no que o usuario escolher
+                
+                dos.write(message);
+                //dos.writeUTF(tosend); 
                   
                 // If client sends exit,close this connection  
                 // and then break from the while loop 
@@ -74,5 +112,7 @@ public class Client
         }catch(Exception e){ 
             e.printStackTrace(); 
         } 
-    } 
+    }
+    
+   
 } 

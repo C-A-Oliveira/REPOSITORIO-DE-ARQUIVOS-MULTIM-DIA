@@ -310,7 +310,7 @@ class ClientHandler extends Thread {
 					// UPLOAD: Client (bytes arq) -> Server -> Storage
 					System.out.println("Recebendo arquivo do cliente");
 					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, body);
-					dos.write(message);
+					dos.write(message); //FIX: dos esta enviando ao cliente?
 
 				} else {
 					if (mode == RECEBE_ARQ_STORAGE) {

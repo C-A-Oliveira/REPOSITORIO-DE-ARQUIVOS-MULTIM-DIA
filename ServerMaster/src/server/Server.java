@@ -101,17 +101,15 @@ class ClientHandler extends Thread {
 	Semaphore semUser;
 	Semaphore semArq;
 
+	// Constantes do cabecalho
 	public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
 	public static final byte RECEBE_ARQ_STORAGE = (byte) 0x02;
 	public static final byte RECEBE_REQ_CLIENT = (byte) 0x04;
-
 	public static final byte ENVIA_ARQ_STORAGE = (byte) 0x01;
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	// TODO: Considerar remover DataOutputStream do argumento pois o Server tem que
-	// decidir qualquer Storage enviar
 	public ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
 		this.s = s;
 		this.dis = dis;
@@ -120,39 +118,107 @@ class ClientHandler extends Thread {
 		semArq = new Semaphore(1);
 	}
 
-	public static byte[][] splitMessage(byte[] _msg) {
+	@Override
+	public void run() {
+		while (true) {
+			try {
 
-		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
-		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
-		int sizeBody = _msg.length - sizeHeader;
-		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
+				// READING
+				byte[] auxByte = new byte[1];
 
-		byte[] header = new byte[sizeHeader];
-		byte[] body = new byte[sizeBody];
+				int lenght = dis.readInt();
 
-		for (int i = 0; i < header.length; i++) {
-			header[i] = _msg[i];
+				byte[] received = new byte[lenght];
+				// Reconstroi o int lido
+				byte[] lb = intToBytes(lenght);
+				for (int i = 0; i < Integer.BYTES; i++) {
+					received[i] = lb[i];
+				}
+				byte[] buffer = new byte[lenght - Integer.BYTES];
+				dis.readFully(buffer);
+				int c = 0;
+				for (int i = Integer.BYTES; i < lenght; i++) {
+					received[i] = buffer[c];
+					c++;
+				}
+				c = 0;
+				System.out.println("_msg len = " + received.length);
+
+				// DIVIDINDO
+				byte[][] split = splitMessage(received);
+
+				byte[] header = split[0];
+				byte[] body = split[1];
+
+				byte mode = header[Integer.BYTES];
+				System.out.println("modo = " + mode);
+				byte[] user = new byte[header.length - 1];
+				System.arraycopy(header, 1, user, 0, header.length - 1);
+
+				// TODO: definir storage a ser enviado (dos eh referente a cliente?)
+				if (mode == RECEBE_ARQ_CLIENT) {
+					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
+					System.out.println("Recebendo arquivo do cliente");
+
+					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, body);
+					dos.write(message);
+
+				} else {
+					if (mode == RECEBE_ARQ_STORAGE) {
+						// -- TRANSFERENCIA: STORAGE -> Server -> Client
+						System.out.println("Recebendo arquivo do storage");
+
+						byte[] message = makeMessage(ENVIA_ARQ_CLIENT, user, body);
+						dos.write(message);
+
+					} else {
+						if (mode == RECEBE_REQ_CLIENT) {
+							// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
+							System.out.println("Recebendo requisicao do cliente");
+
+							// Se o usuario possui acesso, entao envie a requisicao ao storage
+							if (userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
+								byte[] message = makeMessage(ENVIA_REQ_STORAGE, user, body);
+								dos.write(message);
+							}
+						}
+					}
+				}
+
+				System.out.println("received message from client " + this.s.getPort() + "! >> "
+						+ new String(received, StandardCharsets.UTF_8));
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
-		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
-			body[j] = _msg[i];
-			j++;
-		}
-		j = 0;
+//		try {
+//			// closing resources
+//			this.dis.close();
+//			this.dos.close();
+//
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+	}// Fim do metodo run
 
-		splitMsg[0] = header;
-		splitMsg[1] = body;
+	// ==================== USER TEM ACESSO? ======================
+	public boolean userTemAcesso(long user, String arg) {
+		// TODO: remover comentario do semaphore
+//		try {
+//			semUser.acquire();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+		boolean ok = true; // TODO: implement, so pra teste
 
-		return splitMsg;
+		// throw new UnsupportedOperationException("todo: Not implemented yet");
+		// semUser.release();
+		return ok;
 	}
 
-	public static byte[] longToBytes(long x) {
-		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-		buffer.putLong(x);
-		return buffer.array();
-	}
-
+	// ============== MAKE MESSAGE METODOS ====================
 	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
 
 		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
@@ -184,25 +250,14 @@ class ClientHandler extends Thread {
 
 		// BODY
 		j = 0;
-		for (int i = header.length; i < _body.length+header.length; i++) {
+		for (int i = header.length; i < _body.length + header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
 
 		// Output
 		return message;
-	}
-
-	public static byte[] intToBytes(int i) {
-		byte[] result = new byte[4];
-
-		result[0] = (byte) (i >> 24);
-		result[1] = (byte) (i >> 16);
-		result[2] = (byte) (i >> 8);
-		result[3] = (byte) (i);
-
-		return result;
-	}
+	}// fim do make message
 
 	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _body) {
 
@@ -235,126 +290,60 @@ class ClientHandler extends Thread {
 
 		// BODY
 		j = 0;
-		for (int i = header.length; i < _body.length+header.length; i++) {
+		for (int i = header.length; i < _body.length + header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
 
 		// Output
 		return message;
-	}
+	}// fim do segundo make message
 
-	public boolean userTemAcesso(long user, String arg) {
-		// TODO: remover comentario do semaphore
-//		try {
-//			semUser.acquire();
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-		boolean ok = true; // TODO: implement, so pra teste
+	//Retorna um array de byte[] (array de array), o primeiro eh o cabecalho e o segundo eh o corpo da mensagem
+	public static byte[][] splitMessage(byte[] _msg) {
 
-		// throw new UnsupportedOperationException("todo: Not implemented yet");
-		// semUser.release();
-		return ok;
-	}
+		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
+		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
+		int sizeBody = _msg.length - sizeHeader;
+		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
 
-	@Override
-	public void run() {
-		// String received;
-		// ArrayList<Byte> receivedList = new ArrayList<Byte>();
-		while (true) {
-			try {
+		byte[] header = new byte[sizeHeader];
+		byte[] body = new byte[sizeBody];
 
-				// Ask user what he wants
-				// dos.writeUTF("What's your message?");
-
-				// receive the answer from client
-				// received = dis.readUTF();
-
-				// READING
-				System.out.println("1Iniciando Server");
-				byte[] auxByte = new byte[1];
-
-				int lenght = dis.readInt();
-				
-				byte[] received = new byte[lenght];
-				//Reconstroi o int lido
-				byte[] lb = intToBytes(lenght);
-				for(int i=0;i<Integer.BYTES;i++) {
-					received[i] = lb[i];
-				}
-				byte[] buffer = new byte[lenght-Integer.BYTES];
-				dis.readFully(buffer);
-				int c = 0;
-				for(int i=Integer.BYTES;i<lenght;i++) {
-					received[i] = buffer[c];
-					c++;
-				}
-				c=0;
-				System.out.println("_msg len = " + received.length);
-
-				// DIVIDINDO
-				byte[][] split = splitMessage(received);
-
-				byte[] header = split[0];
-				byte[] body = split[1];
-
-				byte mode = header[Integer.BYTES];
-				System.out.println("modo = " + mode);
-				byte[] user = new byte[header.length - 1];
-				System.arraycopy(header, 1, user, 0, header.length - 1);
-
-				// TODO: definir storage a ser enviado
-
-				if (mode == RECEBE_ARQ_CLIENT) {
-					// UPLOAD: Client (bytes arq) -> Server -> Storage
-					System.out.println("Recebendo arquivo do cliente");
-					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, body);
-					dos.write(message); //FIX: dos esta enviando ao cliente?
-
-				} else {
-					if (mode == RECEBE_ARQ_STORAGE) {
-						// TRANSFERENCIA: STORAGE -> Server -> Client
-						System.out.println("Recebendo arquivo do storage");
-						byte[] message = makeMessage(ENVIA_ARQ_CLIENT, user, body);
-						dos.write(message);
-
-					} else {
-						// DOWNLOAD: Client (nome arq) -> Server -> Storage
-
-						if (mode == RECEBE_REQ_CLIENT) {
-							System.out.println("Recebendo requisicao do cliente");
-							if (userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
-								byte[] message = makeMessage(ENVIA_REQ_STORAGE, user, body);
-								dos.write(message);
-							}
-						}
-					}
-				}
-
-//				if (received.equals("Exit")) {
-//					System.out.println("Client " + this.s + " sends exit...");
-//					System.out.println("Closing this connection.");
-//					this.s.close();
-//					System.out.println("Connection closed");
-//					break;
-//				}
-
-				System.out.println("received message from client " + this.s.getPort() + "! >> " + new String(received, StandardCharsets.UTF_8));
-				//dos.writeUTF("server response: received message from client! >> " + new String(received, StandardCharsets.UTF_8));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		for (int i = 0; i < header.length; i++) {
+			header[i] = _msg[i];
 		}
 
-//		try {
-//			// closing resources
-//			this.dis.close();
-//			this.dos.close();
-//
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+		int j = 0;
+		for (int i = header.length; i < body.length; i++) {
+			body[j] = _msg[i];
+			j++;
+		}
+		j = 0;
+
+		splitMsg[0] = header;
+		splitMsg[1] = body;
+
+		return splitMsg;
+	}
+	
+	//========== METODOS UTILITARIOS =================
+
+	public static byte[] longToBytes(long x) {
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(x);
+		return buffer.array();
+	}
+
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
+
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
 	}
 
 	public static long bytesToLong(byte[] bytes) {

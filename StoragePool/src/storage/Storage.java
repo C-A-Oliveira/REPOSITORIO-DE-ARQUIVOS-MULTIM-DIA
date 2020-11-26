@@ -151,15 +151,48 @@ public class Storage {
 
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
-		
-		throw new UnsupportedOperationException("TODO, not implemented yet");// TODO: implement
 
-		// return arq;
+		File file = new File("bbb");// TODO: implement, isso eh so pra teste
+
+		arq = readContentIntoByteArray(file);
+
+		// throw new UnsupportedOperationException("todo, not implemented yet");
+		// implement
+
+		return arq;
 	}
 
-	private static byte[] writeArq(byte[] _arq) {
+	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
+	private static byte[] readContentIntoByteArray(File file) {
+		FileInputStream fileInputStream = null;
+		byte[] bFile = new byte[(int) file.length()];
+		try {
+			// convert file into array of bytes
+			fileInputStream = new FileInputStream(file);
+			fileInputStream.read(bFile);
+			fileInputStream.close();
+			// for (int i = 0; i < bFile.length; i++) {
+			// System.out.print((char) bFile[i]);
+			// }
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return bFile;
+	}
 
-		throw new UnsupportedOperationException("TODO, not implemented yet");// TODO: implement
+	private static void writeArq(byte[] _arq) {
+
+		// TODO: implement, so pra teste
+		// SOMENTE PARA TESTE - AQUI DEVE FICAR O CODIGO PARA GRAVACAO APROPRIADO NO
+		// STORAGE
+		try (FileOutputStream stream = new FileOutputStream("bbb")) {
+			stream.write(_arq);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Arquivo criado.");
 
 		// return arq;
 	}

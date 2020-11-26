@@ -24,25 +24,49 @@ public class Client {
 		return buffer.array();
 	}
 
+	// Fonte:
+	// https://stackoverflow.com/questions/1936857/convert-integer-into-byte-array-java/1936865
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
+
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
+	}
+
 	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
 
-		byte[] header = new byte[1 + Long.BYTES];
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
 		byte[] message = new byte[header.length + _body.length];
 
-		// Faz o header
-		header[0] = _mode;
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = 0; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+		}
+
+		// Modo
+		header[Integer.BYTES] = _mode;
+
+		// Usuario
 		byte[] bytesId = longToBytes(_id);
 		int j = 0;
-		for (int i = 1; i < header.length; i++) {
+		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
 			header[i] = bytesId[j];
 			j++;
 		}
 
-		// Faz o Message
+		// MESSAGE
+		// HEADER
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
+		// BODY
 		j = 0;
 		for (int i = header.length; i < _body.length; i++) {
 			message[i] = _body[j];
@@ -53,35 +77,32 @@ public class Client {
 		return message;
 	}
 
-	//Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
-	private static byte[] readContentIntoByteArray(File file)
-	   {
-	      FileInputStream fileInputStream = null;
-	      byte[] bFile = new byte[(int) file.length()];
-	      try
-	      {
-	         //convert file into array of bytes
-	         fileInputStream = new FileInputStream(file);
-	         fileInputStream.read(bFile);
-	         fileInputStream.close();
-	         for (int i = 0; i < bFile.length; i++)
-	         {
-	            System.out.print((char) bFile[i]);
-	         }
-	      }
-	      catch (Exception e)
-	      {
-	         e.printStackTrace();
-	      }
-	      return bFile;
-	   }
-	
+	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
+	private static byte[] readContentIntoByteArray(File file) {
+		FileInputStream fileInputStream = null;
+		byte[] bFile = new byte[(int) file.length()];
+		try {
+			// convert file into array of bytes
+			if (file.exists()) {
+				fileInputStream = new FileInputStream(file);
+				fileInputStream.read(bFile);
+				fileInputStream.close();
+				// for (int i = 0; i < bFile.length; i++) {
+//					System.out.print((char) bFile[i]);
+				// }
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return bFile;
+	}
+
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
-		
+
 		File testeArq = new File(nomeArq);
 		b = readContentIntoByteArray(testeArq);
-		
+
 		return b;
 	}
 
@@ -152,15 +173,16 @@ public class Client {
 					loop = false;
 					break;
 				}
-				
-				if(opcao != "closed") {
+
+				if (opcao != "closed") {
 					byte[] message = makeMessage(modo, id, bytes);
-	
+
+					System.out.println("dos write");
 					dos.write(message);
-	
+
 					// printing date or time as requested by client
-					String received = dis.readUTF();
-					System.out.println(received);
+					// String received = dis.readUTF();
+					// System.out.println(received);
 				}
 			}
 			// closing resources
@@ -222,7 +244,6 @@ class ServerHandler extends Thread {
 		while (true) {
 			try {
 				// Ask user what he wants
-				dos.writeUTF("What's your message?");
 
 				// receive the answer from client
 				// received = dis.readUTF();
@@ -258,9 +279,9 @@ class ServerHandler extends Thread {
 	}
 
 	public static void writeArq(byte[] arq) {
-		//TODO: Colocar nome
+		// TODO: Colocar nome
 		try (FileOutputStream stream = new FileOutputStream("aaa")) {
-		    stream.write(arq);
+			stream.write(arq);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

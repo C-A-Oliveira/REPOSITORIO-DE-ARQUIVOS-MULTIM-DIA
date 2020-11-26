@@ -44,7 +44,6 @@ public class Server {
 				// create a new thread object
 				t.setName(name);
 				t.start();
-				
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -111,7 +110,8 @@ class ClientHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	//TODO: Considerar remover DataOutputStream do argumento pois o Server tem que decidir qualquer Storage enviar
+	// TODO: Considerar remover DataOutputStream do argumento pois o Server tem que
+	// decidir qualquer Storage enviar
 	public ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
 		this.s = s;
 		this.dis = dis;
@@ -122,7 +122,8 @@ class ClientHandler extends Thread {
 
 	public static byte[][] splitMessage(byte[] _msg) {
 
-		int sizeHeader = 1 + Long.BYTES;
+		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
+		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
 		int sizeBody = _msg.length - sizeHeader;
 		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
 
@@ -146,25 +147,42 @@ class ClientHandler extends Thread {
 		return splitMsg;
 	}
 
+	public static byte[] longToBytes(long x) {
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(x);
+		return buffer.array();
+	}
+
 	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
 
-		byte[] header = new byte[1 + Long.BYTES];
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
 		byte[] message = new byte[header.length + _body.length];
 
-		// Faz o header
-		header[0] = _mode;
-		byte[] bytesId = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(_id).array();
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = 0; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+		}
+
+		// Modo
+		header[Integer.BYTES] = _mode;
+
+		// Usuario
+		byte[] bytesId = longToBytes(_id);
 		int j = 0;
-		for (int i = 1; i < header.length; i++) {
+		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
 			header[i] = bytesId[j];
 			j++;
 		}
 
-		// Faz o Message
+		// MESSAGE
+		// HEADER
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
+		// BODY
 		j = 0;
 		for (int i = header.length; i < _body.length; i++) {
 			message[i] = _body[j];
@@ -175,24 +193,47 @@ class ClientHandler extends Thread {
 		return message;
 	}
 
-	public static byte[] makeMessage(byte _mode, byte[] _bytesId, byte[] _body) {
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
 
-		byte[] header = new byte[1 + Long.BYTES];
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
+	}
+
+	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _body) {
+
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
 		byte[] message = new byte[header.length + _body.length];
 
-		// Faz o header
-		header[0] = _mode;
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = 0; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+		}
+
+		// Modo
+		header[Integer.BYTES] = _mode;
+
+		// Usuario
+		byte[] bytesId = _id;
 		int j = 0;
-		for (int i = 1; i < header.length; i++) {
-			header[i] = _bytesId[j];
+		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
+			header[i] = bytesId[j];
 			j++;
 		}
 
-		// Faz o Message
+		// MESSAGE
+		// HEADER
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
+		// BODY
 		j = 0;
 		for (int i = header.length; i < _body.length; i++) {
 			message[i] = _body[j];
@@ -204,42 +245,53 @@ class ClientHandler extends Thread {
 	}
 
 	public boolean userTemAcesso(long user, String arg) {
-		//TODO: remover comentario do semaphore
+		// TODO: remover comentario do semaphore
 //		try {
 //			semUser.acquire();
 //		} catch (InterruptedException e) {
 //			e.printStackTrace();
 //		}
-		boolean ok = false;
+		boolean ok = true; // TODO: implement, so pra teste
 
-		throw new UnsupportedOperationException("TODO: Not implemented yet");//TODO: implement
-		//semUser.release();
-		// return ok;
+		// throw new UnsupportedOperationException("todo: Not implemented yet");
+		// semUser.release();
+		return ok;
 	}
 
 	@Override
 	public void run() {
 		// String received;
-		ArrayList<Byte> receivedList = new ArrayList<Byte>();
-		System.out.println("Iniciando Server");
+		// ArrayList<Byte> receivedList = new ArrayList<Byte>();
 		while (true) {
 			try {
 
 				// Ask user what he wants
-				dos.writeUTF("What's your message?");
+				// dos.writeUTF("What's your message?");
 
 				// receive the answer from client
 				// received = dis.readUTF();
 
 				// READING
+				System.out.println("1Iniciando Server");
 				byte[] auxByte = new byte[1];
-				while (dis.read(auxByte) != -1) {
-					receivedList.add(new Byte(auxByte[0]));
+
+				int lenght = dis.readInt();
+				
+				byte[] received = new byte[lenght];
+				//Reconstroi o int lido
+				byte[] lb = intToBytes(lenght);
+				for(int i=0;i<Integer.BYTES;i++) {
+					received[i] = lb[i];
 				}
-				byte[] received = new byte[receivedList.size()];
-				for (int i = 0; i < receivedList.size(); i++) {
-					received[i] = receivedList.get(i).byteValue();
+				byte[] buffer = new byte[lenght-Integer.BYTES];
+				dis.readFully(buffer);
+				int c = 0;
+				for(int i=Integer.BYTES;i<lenght;i++) {
+					received[i] = buffer[c];
+					c++;
 				}
+				c=0;
+				System.out.println("_msg len = " + received.length);
 
 				// DIVIDINDO
 				byte[][] split = splitMessage(received);
@@ -247,30 +299,32 @@ class ClientHandler extends Thread {
 				byte[] header = split[0];
 				byte[] body = split[1];
 
-				byte mode = header[0];
+				byte mode = header[Integer.BYTES];
+				System.out.println("modo = " + mode);
 				byte[] user = new byte[header.length - 1];
 				System.arraycopy(header, 1, user, 0, header.length - 1);
-				
-				//TODO: definir storage a ser enviado
+
+				// TODO: definir storage a ser enviado
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// UPLOAD: Client (bytes arq) -> Server -> Storage
-
+					System.out.println("Recebendo arquivo do cliente");
 					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, body);
 					dos.write(message);
 
 				} else {
 					if (mode == RECEBE_ARQ_STORAGE) {
 						// TRANSFERENCIA: STORAGE -> Server -> Client
-
+						System.out.println("Recebendo arquivo do storage");
 						byte[] message = makeMessage(ENVIA_ARQ_CLIENT, user, body);
 						dos.write(message);
 
 					} else {
 						// DOWNLOAD: Client (nome arq) -> Server -> Storage
 
-						if (header[0] == RECEBE_REQ_CLIENT) {
-							if(userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
+						if (mode == RECEBE_REQ_CLIENT) {
+							System.out.println("Recebendo requisicao do cliente");
+							if (userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
 								byte[] message = makeMessage(ENVIA_REQ_STORAGE, user, body);
 								dos.write(message);
 							}
@@ -286,8 +340,8 @@ class ClientHandler extends Thread {
 //					break;
 //				}
 
-				System.out.println("received message from client" + this.s.getPort() + "! >> " + received.toString());
-				dos.writeUTF("server response: received message from client! >> " + received.toString());
+				System.out.println("received message from client " + this.s.getPort() + "! >> " + new String(received, StandardCharsets.UTF_8));
+				//dos.writeUTF("server response: received message from client! >> " + new String(received, StandardCharsets.UTF_8));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -302,11 +356,11 @@ class ClientHandler extends Thread {
 //			e.printStackTrace();
 //		}
 	}
-	
+
 	public static long bytesToLong(byte[] bytes) {
-	    ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-	    buffer.put(bytes);
-	    buffer.flip();//need flip 
-	    return buffer.getLong();
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.put(bytes);
+		buffer.flip();// need flip
+		return buffer.getLong();
 	}
 }

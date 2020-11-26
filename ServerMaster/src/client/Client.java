@@ -18,94 +18,6 @@ public class Client {
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
 
-	public static byte[] longToBytes(long x) {
-		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-		buffer.putLong(x);
-		return buffer.array();
-	}
-
-	// Fonte:
-	// https://stackoverflow.com/questions/1936857/convert-integer-into-byte-array-java/1936865
-	public static byte[] intToBytes(int i) {
-		byte[] result = new byte[4];
-
-		result[0] = (byte) (i >> 24);
-		result[1] = (byte) (i >> 16);
-		result[2] = (byte) (i >> 8);
-		result[3] = (byte) (i);
-
-		return result;
-	}
-
-	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
-
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-
-		// Header
-		// Tamanho
-		byte[] lb = intToBytes(message.length);
-		for (int i = 0; i < Integer.BYTES; i++) {
-			header[i] = lb[i];
-		}
-
-		// Modo
-		header[Integer.BYTES] = _mode;
-
-		// Usuario
-		byte[] bytesId = longToBytes(_id);
-		int j = 0;
-		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
-			header[i] = bytesId[j];
-			j++;
-		}
-
-		// MESSAGE
-		// HEADER
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		// BODY
-		j = 0;
-		for (int i = header.length; i < _body.length+header.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-		// Output
-		return message;
-	}
-
-	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
-	private static byte[] readContentIntoByteArray(File file) {
-		FileInputStream fileInputStream = null;
-		byte[] bFile = new byte[(int) file.length()];
-		try {
-			// convert file into array of bytes
-			if (file.exists()) {
-				fileInputStream = new FileInputStream(file);
-				fileInputStream.read(bFile);
-				fileInputStream.close();
-				// for (int i = 0; i < bFile.length; i++) {
-//					System.out.print((char) bFile[i]);
-				// }
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return bFile;
-	}
-
-	public static byte[] getArq(String nomeArq) {
-		byte[] b;
-
-		File testeArq = new File(nomeArq);
-		b = readContentIntoByteArray(testeArq);
-
-		return b;
-	}
-
 	public static void main(String[] args) throws IOException {
 		try {
 			Scanner scn = new Scanner(System.in);
@@ -193,15 +105,111 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
+	
+	//Constroi a mensagem (retorna a mensagem ja com cabecalho)
+	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
+
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
+		byte[] message = new byte[header.length + _body.length];
+
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = 0; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+		}
+
+		// Modo
+		header[Integer.BYTES] = _mode;
+
+		// Usuario
+		byte[] bytesId = longToBytes(_id);
+		int j = 0;
+		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
+			header[i] = bytesId[j];
+			j++;
+		}
+
+		// MESSAGE
+		// HEADER
+		for (int i = 0; i < header.length; i++) {
+			message[i] = header[i];
+		}
+
+		// BODY
+		j = 0;
+		for (int i = header.length; i < _body.length + header.length; i++) {
+			message[i] = _body[j];
+			j++;
+		}
+
+		// Output
+		return message;
+	}
+	
+	//============ METODOS UTILITARIOS =====================
+	
+	//Retorna os bytes[] de um long
+	public static byte[] longToBytes(long x) {
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(x);
+		return buffer.array();
+	}
+	
+	// Fonte:
+	// https://stackoverflow.com/questions/1936857/convert-integer-into-byte-array-java/1936865
+	// Retorna os bytes[] de um int
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
+
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
+	}
+	
+	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
+	//File -> byte[]
+	public static byte[] readContentIntoByteArray(File file) {
+		FileInputStream fileInputStream = null;
+		byte[] bFile = new byte[(int) file.length()];
+		try {
+			// convert file into array of bytes
+			if (file.exists()) {
+				fileInputStream = new FileInputStream(file);
+				fileInputStream.read(bFile);
+				fileInputStream.close();
+				// for (int i = 0; i < bFile.length; i++) {
+//					System.out.print((char) bFile[i]);
+				// }
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return bFile;
+	}
+	
+	//Retorna os bytes[] do arquivo especificado
+	public static byte[] getArq(String nomeArq) {
+		byte[] b;
+
+		File testeArq = new File(nomeArq);
+		b = readContentIntoByteArray(testeArq);
+
+		return b;
+	}
 
 }
 
-//Para recebimento dos arquivos
+//>>>>>> THREAD - Para recebimento dos arquivos
 class ServerHandler extends Thread {
 	final DataInputStream dis;
 	final DataOutputStream dos;
 	final Socket s;
 
+	//Constantes do cabecalho (modo)
 	public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
@@ -210,32 +218,6 @@ class ServerHandler extends Thread {
 		this.s = s;
 		this.dis = dis;
 		this.dos = dos;
-	}
-
-	public static byte[][] splitMessage(byte[] _msg) {
-
-		int sizeHeader = 1 + Long.BYTES;
-		int sizeBody = _msg.length - sizeHeader;
-		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
-
-		byte[] header = new byte[sizeHeader];
-		byte[] body = new byte[sizeBody];
-
-		for (int i = 0; i < header.length; i++) {
-			header[i] = _msg[i];
-		}
-
-		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
-			body[j] = _msg[i];
-			j++;
-		}
-		j = 0;
-
-		splitMsg[0] = header;
-		splitMsg[1] = body;
-
-		return splitMsg;
 	}
 
 	@Override
@@ -278,6 +260,7 @@ class ServerHandler extends Thread {
 		}
 	}
 
+	//Cria o arquivo
 	public static void writeArq(byte[] arq) {
 		// TODO: Colocar nome
 		try (FileOutputStream stream = new FileOutputStream("aaa")) {
@@ -288,6 +271,34 @@ class ServerHandler extends Thread {
 			e.printStackTrace();
 		}
 		System.out.println("Arquivo criado.");
+	}
+	
+	//Divide a mensagem em cabecalho e corpo. retorna um array de byte[] (array de array)
+	public static byte[][] splitMessage(byte[] _msg) {
+
+		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
+		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
+		int sizeBody = _msg.length - sizeHeader;
+		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
+
+		byte[] header = new byte[sizeHeader];
+		byte[] body = new byte[sizeBody];
+
+		for (int i = 0; i < header.length; i++) {
+			header[i] = _msg[i];
+		}
+
+		int j = 0;
+		for (int i = header.length; i < body.length; i++) {
+			body[j] = _msg[i];
+			j++;
+		}
+		j = 0;
+
+		splitMsg[0] = header;
+		splitMsg[1] = body;
+
+		return splitMsg;
 	}
 
 }

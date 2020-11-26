@@ -53,10 +53,36 @@ public class Client {
 		return message;
 	}
 
+	//Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
+	private static byte[] readContentIntoByteArray(File file)
+	   {
+	      FileInputStream fileInputStream = null;
+	      byte[] bFile = new byte[(int) file.length()];
+	      try
+	      {
+	         //convert file into array of bytes
+	         fileInputStream = new FileInputStream(file);
+	         fileInputStream.read(bFile);
+	         fileInputStream.close();
+	         for (int i = 0; i < bFile.length; i++)
+	         {
+	            System.out.print((char) bFile[i]);
+	         }
+	      }
+	      catch (Exception e)
+	      {
+	         e.printStackTrace();
+	      }
+	      return bFile;
+	   }
+	
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
-		throw new UnsupportedOperationException("TODO: Not implemented yet");// TODO: implement
-		// return b;
+		
+		File testeArq = new File(nomeArq);
+		b = readContentIntoByteArray(testeArq);
+		
+		return b;
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -112,16 +138,19 @@ public class Client {
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					String upNomeArq = scn.nextLine();
 					bytes = getArq(upNomeArq);
+					break;
 				case "download":
 					modo = ENVIA_REQ;
 					System.out.println("Escreva o nome do arquivo a ser baixado: ");
 					String nomeArq = scn.nextLine();
 					bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
+					break;
 				case "closed":
 					System.out.println("Fechando conexao: " + s);
 					s.close();
 					System.out.println("Conexao fechada.");
 					loop = false;
+					break;
 				}
 				
 				if(opcao != "closed") {

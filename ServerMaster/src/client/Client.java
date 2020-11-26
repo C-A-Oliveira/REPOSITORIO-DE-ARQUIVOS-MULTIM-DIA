@@ -258,7 +258,15 @@ class ServerHandler extends Thread {
 	}
 
 	public static void writeArq(byte[] arq) {
-		throw new UnsupportedOperationException(); // TODO: implement
+		//TODO: Colocar nome
+		try (FileOutputStream stream = new FileOutputStream("aaa")) {
+		    stream.write(arq);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Arquivo criado.");
 	}
 
 }

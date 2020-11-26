@@ -111,6 +111,7 @@ class ClientHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
+	//TODO: Considerar remover DataOutputStream do argumento pois o Server tem que decidir qualquer Storage enviar
 	public ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
 		this.s = s;
 		this.dis = dis;
@@ -250,7 +251,7 @@ class ClientHandler extends Thread {
 				byte[] user = new byte[header.length - 1];
 				System.arraycopy(header, 1, user, 0, header.length - 1);
 				
-				//TODO: definir servidor a ser enviado
+				//TODO: definir storage a ser enviado
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// UPLOAD: Client (bytes arq) -> Server -> Storage

@@ -7,6 +7,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -66,13 +68,15 @@ public class Client {
 				String opcao = scn.nextLine();
 				byte modo = (byte)0x00;
 				byte[] bytes = null;
-				String nomeArq = "";
+				String nomeArq = null;
 				switch (opcao) {
 				case "upload":
+					Path pathArq = null;
 					modo = ENVIA_ARQ;
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
-					nomeArq = scn.nextLine();
-					bytes = getArq(nomeArq);
+					pathArq = Paths.get(scn.nextLine());
+					nomeArq = pathArq.getFileName().toString();
+					bytes = getArq(pathArq.toString());
 					break;
 				case "download":
 					modo = ENVIA_REQ;
@@ -87,6 +91,12 @@ public class Client {
 					loop = false;
 					break;
 				}
+				
+				//TESTE
+				if(nomeArq == null) {
+					throw new Exception("Nome do arquivo NULO!");
+				}
+				
 
 				if (opcao != "closed") {
 					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);

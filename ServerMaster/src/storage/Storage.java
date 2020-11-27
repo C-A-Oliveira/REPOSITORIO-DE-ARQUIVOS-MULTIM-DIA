@@ -157,7 +157,7 @@ public class Storage {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Arquivo criado.");
+		System.out.println("Arquivo criado. - " + _nomeArq);
 
 		// return arq;
 	}

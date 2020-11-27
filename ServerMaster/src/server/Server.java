@@ -176,16 +176,23 @@ class ClientHandler extends Thread {
 				byte[] header = split[0];
 				byte[] body = split[1];
 
+				//TODO: simplificar esse processo...
 				byte mode = header[Integer.BYTES];
 				System.out.println("modo = " + mode);
-				byte[] user = new byte[header.length - 1];
-				System.arraycopy(header, 1, user, 0, header.length - 1);
+				byte[] user = new byte[Long.BYTES];
+				System.arraycopy(header, Integer.BYTES + 1, user, 0, user.length);
+				byte[] bTamNome = new byte[Integer.BYTES]; 
+				//FIX
+				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES, bTamNome, 0, bTamNome.length);
+				int tamNome = bytesToInt(bTamNome);
+				byte[] bNomeArq = new byte[tamNome];
+				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES + Integer.BYTES, bNomeArq, 0, bNomeArq.length);
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 					System.out.println("Recebendo arquivo do cliente");
 
-					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, body);
+					byte[] message = makeMessage(ENVIA_ARQ_STORAGE, user, bNomeArq, body);
 					dos.write(message);
 
 				} else {
@@ -195,7 +202,7 @@ class ClientHandler extends Thread {
 
 						// Se o usuario possui acesso, entao envie a requisicao ao storage
 						if (userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
-							byte[] message = makeMessage(ENVIA_REQ_STORAGE, user, body);
+							byte[] message = makeMessage(ENVIA_REQ_STORAGE, user, bNomeArq, body);
 							dos.write(message);
 						}
 					}
@@ -235,83 +242,133 @@ class ClientHandler extends Thread {
 	}
 
 	// ============== MAKE MESSAGE METODOS ====================
-	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
+	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _nome, byte[] _body) {
 
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
 		byte[] message = new byte[header.length + _body.length];
-
+		
+		int k = 0;
+		
 		// Header
 		// Tamanho
 		byte[] lb = intToBytes(message.length);
-		for (int i = 0; i < Integer.BYTES; i++) {
+		for (int i = k; i < Integer.BYTES; i++) {
 			header[i] = lb[i];
+			k++;
 		}
 
 		// Modo
-		header[Integer.BYTES] = _mode;
-
-		// Usuario
-		byte[] bytesId = longToBytes(_id);
-		int j = 0;
-		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
-			header[i] = bytesId[j];
-			j++;
-		}
-
-		// MESSAGE
-		// HEADER
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		// BODY
-		j = 0;
-		for (int i = header.length; i < _body.length + header.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-		// Output
-		return message;
-	}
-
-	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _body) {
-
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-
-		// Header
-		// Tamanho
-		byte[] lb = intToBytes(message.length);
-		for (int i = 0; i < Integer.BYTES; i++) {
-			header[i] = lb[i];
-		}
-
-		// Modo
-		header[Integer.BYTES] = _mode;
+		header[k++] = _mode;
 
 		// Usuario
 		byte[] bytesId = _id;
 		int j = 0;
-		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
+		for (int i = k; i < bytesId.length; i++) {
 			header[i] = bytesId[j];
 			j++;
+			k++;
 		}
+		
+		j=0;
+		
+		//Tamanho Nome do arq
+		byte[] bytesNome = _nome;
+		byte[] nlb = intToBytes( bytesNome.length );
+		for (int i = k; i < Integer.BYTES; i++) {
+			header[i] = nlb[j];
+			j++;
+			k++;
+		}
+		
+		j=0;
+		
+		//Nome do arq
+		for(int i=k;i<bytesNome.length;i++) {
+			header[i] = bytesNome[j];
+			j++;
+			k++;
+		}
+		
 
-		// MESSAGE
-		// HEADER
+		// MESSAGE - Concatena header e body
+		// Header
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
-		// BODY
+		// Body
 		j = 0;
 		for (int i = header.length; i < _body.length + header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
 
-		// Output
+
+		return message;
+	}
+
+	public static byte[] makeMessage(byte _mode, long _id, String _nome, byte[] _body) {
+
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
+		byte[] message = new byte[header.length + _body.length];
+		
+		int k = 0;
+		
+		// Header
+		// Tamanho
+		byte[] lb = intToBytes(message.length);
+		for (int i = k; i < Integer.BYTES; i++) {
+			header[i] = lb[i];
+			k++;
+		}
+
+		// Modo
+		header[k++] = _mode;
+
+		// Usuario
+		byte[] bytesId = longToBytes(_id);
+		int j = 0;
+		for (int i = k; i < bytesId.length; i++) {
+			header[i] = bytesId[j];
+			j++;
+			k++;
+		}
+		
+		j=0;
+		
+		//Tamanho Nome do arq
+		byte[] bytesNome = _nome.getBytes(StandardCharsets.UTF_8);
+		byte[] nlb = intToBytes( bytesNome.length );
+		for (int i = k; i < Integer.BYTES; i++) {
+			header[i] = nlb[j];
+			j++;
+			k++;
+		}
+		
+		j=0;
+		
+		//Nome do arq
+		for(int i=k;i<bytesNome.length;i++) {
+			header[i] = bytesNome[j];
+			j++;
+			k++;
+		}
+		
+
+		// MESSAGE - Concatena header e body
+		// Header
+		for (int i = 0; i < header.length; i++) {
+			message[i] = header[i];
+		}
+
+		// Body
+		j = 0;
+		for (int i = header.length; i < _body.length + header.length; i++) {
+			message[i] = _body[j];
+			j++;
+		}
+
+
 		return message;
 	}
 
@@ -361,6 +418,13 @@ class ClientHandler extends Thread {
 		result[3] = (byte) (i);
 
 		return result;
+	}
+	
+	public static int bytesToInt(byte[] bytes) {
+	     return ((bytes[0] & 0xFF) << 24) | 
+	            ((bytes[1] & 0xFF) << 16) | 
+	            ((bytes[2] & 0xFF) << 8 ) | 
+	            ((bytes[3] & 0xFF) << 0 );
 	}
 
 	public static long bytesToLong(byte[] bytes) {

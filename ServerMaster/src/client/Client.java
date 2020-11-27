@@ -64,18 +64,18 @@ public class Client {
 				String opcao = scn.nextLine();
 				byte modo = (byte)0x00;
 				byte[] bytes = null;
-
+				String nomeArq = "";
 				switch (opcao) {
 				case "upload":
 					modo = ENVIA_ARQ;
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
-					String upNomeArq = scn.nextLine();
-					bytes = getArq(upNomeArq);
+					nomeArq = scn.nextLine();
+					bytes = getArq(nomeArq);
 					break;
 				case "download":
 					modo = ENVIA_REQ;
 					System.out.println("Escreva o nome do arquivo a ser baixado: ");
-					String nomeArq = scn.nextLine();
+					nomeArq = scn.nextLine();
 					bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
 					break;
 				case "closed":
@@ -87,7 +87,7 @@ public class Client {
 				}
 
 				if (opcao != "closed") {
-					byte[] message = makeMessage(modo, id, bytes);
+					byte[] message = makeMessage(modo, id, nomeArq, bytes);
 
 					System.out.println("dos write");
 					dos.write(message);
@@ -107,43 +107,68 @@ public class Client {
 	}
 	
 	//Constroi a mensagem (retorna a mensagem ja com cabecalho)
-	public static byte[] makeMessage(byte _mode, long _id, byte[] _body) {
+	public static byte[] makeMessage(byte _mode, long _id, String _nome, byte[] _body) {
 
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES];
+		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
 		byte[] message = new byte[header.length + _body.length];
-
+		
+		int k = 0;
+		
 		// Header
 		// Tamanho
 		byte[] lb = intToBytes(message.length);
-		for (int i = 0; i < Integer.BYTES; i++) {
+		for (int i = k; i < Integer.BYTES; i++) {
 			header[i] = lb[i];
+			k++;
 		}
 
 		// Modo
-		header[Integer.BYTES] = _mode;
+		header[k++] = _mode;
 
 		// Usuario
 		byte[] bytesId = longToBytes(_id);
 		int j = 0;
-		for (int i = 1 + Integer.BYTES; i < header.length; i++) {
+		for (int i = k; i < bytesId.length; i++) {
 			header[i] = bytesId[j];
 			j++;
+			k++;
 		}
+		
+		j=0;
+		
+		//Tamanho Nome do arq
+		byte[] bytesNome = _nome.getBytes(StandardCharsets.UTF_8);
+		byte[] nlb = intToBytes( bytesNome.length );
+		for (int i = k; i < Integer.BYTES; i++) {
+			header[i] = nlb[j];
+			j++;
+			k++;
+		}
+		
+		j=0;
+		
+		//Nome do arq
+		for(int i=k;i<bytesNome.length;i++) {
+			header[i] = bytesNome[j];
+			j++;
+			k++;
+		}
+		
 
-		// MESSAGE
-		// HEADER
+		// MESSAGE - Concatena header e body
+		// Header
 		for (int i = 0; i < header.length; i++) {
 			message[i] = header[i];
 		}
 
-		// BODY
+		// Body
 		j = 0;
 		for (int i = header.length; i < _body.length + header.length; i++) {
 			message[i] = _body[j];
 			j++;
 		}
 
-		// Output
+
 		return message;
 	}
 	
@@ -156,8 +181,6 @@ public class Client {
 		return buffer.array();
 	}
 	
-	// Fonte:
-	// https://stackoverflow.com/questions/1936857/convert-integer-into-byte-array-java/1936865
 	// Retorna os bytes[] de um int
 	public static byte[] intToBytes(int i) {
 		byte[] result = new byte[4];
@@ -170,7 +193,6 @@ public class Client {
 		return result;
 	}
 	
-	// Fonte: https://howtodoinjava.com/java/io/read-file-content-into-byte-array/
 	//File -> byte[]
 	public static byte[] readContentIntoByteArray(File file) {
 		FileInputStream fileInputStream = null;
@@ -246,9 +268,16 @@ class ServerHandler extends Thread {
 				byte[] header = split[0];
 				byte[] body = split[1];
 
-				byte mode = header[0];
-				byte[] user = new byte[header.length - 1];
-				System.arraycopy(header, 1, user, 0, header.length - 1);
+				//TODO: simplificar esse processo...
+				byte mode = header[Integer.BYTES];
+				System.out.println("modo = " + mode);
+				byte[] user = new byte[Long.BYTES];
+				System.arraycopy(header, Integer.BYTES + 1, user, 0, user.length);
+				byte[] bTamNome = new byte[Integer.BYTES]; 
+				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES, bTamNome, 0, bTamNome.length);
+				int tamNome = bytesToInt(bTamNome);
+				byte[] bNomeArq = new byte[tamNome];
+				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES + Integer.BYTES, bNomeArq, 0, bNomeArq.length);
 
 				if (mode == RECEBE_ARQ) {
 					writeArq(body);
@@ -299,6 +328,13 @@ class ServerHandler extends Thread {
 		splitMsg[1] = body;
 
 		return splitMsg;
+	}
+	
+	public static int bytesToInt(byte[] bytes) {
+	     return ((bytes[0] & 0xFF) << 24) | 
+	            ((bytes[1] & 0xFF) << 16) | 
+	            ((bytes[2] & 0xFF) << 8 ) | 
+	            ((bytes[3] & 0xFF) << 0 );
 	}
 
 }

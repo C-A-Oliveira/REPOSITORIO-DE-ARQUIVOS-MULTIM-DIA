@@ -55,7 +55,6 @@ public class Storage {
 				// READ
 				//ArrayList<Byte> receivedList = new ArrayList<Byte>();
 				while (true) {
-					System.out.println("inside the loop");
 					try {
 						// READING
 
@@ -76,10 +75,8 @@ public class Storage {
 							c++;
 						}
 						c = 0;
-						System.out.println("_msg len = " + received.length);
 
 						Mensagem msg = new Mensagem(received);
-						System.out.println("headddd: "+ msg.getHeader().headerSize());
 						byte mode = msg.getHeader().getMode();
 						byte[] user = msg.getHeader().getBUser();
 						byte[] bNomeArq = msg.getHeader().getBNome();
@@ -87,8 +84,7 @@ public class Storage {
 						String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 						
 						if (mode == RECEBE_REQ_SERVER) {
-							System.out.println("RECEBE_REQ_SERVER");
-							
+							//Download
 							byte[] arq = getArq(nomeArq);
 
 							Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
@@ -97,7 +93,7 @@ public class Storage {
 							dos.write(message);
 						} else {
 							if (mode == RECEBE_ARQ_SERVER) {
-								System.out.println("RECEBE_ARQ_SERVER");
+								//Upload
 								writeArq(body, nomeArq);
 							}
 						}
@@ -108,7 +104,6 @@ public class Storage {
 
 				}
 			} catch (Exception e) {
-				System.out.println(e.toString());
 				e.printStackTrace();
 			}
 		}

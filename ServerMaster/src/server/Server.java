@@ -158,9 +158,6 @@ class ClientHandler extends Thread {
 				byte[] buffer = new byte[lenght - Integer.BYTES];
 				dis.readFully(buffer);
 				
-				//dis.readFully(received);
-				System.out.println("received = "+ received.length);
-				
 				int c = 0;
 				for (int i = Integer.BYTES; i < lenght; i++) {
 					received[i] = buffer[c];
@@ -169,28 +166,26 @@ class ClientHandler extends Thread {
 				c = 0;
 				
 				Mensagem msg = new Mensagem(received);
-				System.out.println("headdd = " + msg.getHeader().headerSize());
 				byte mode = msg.getHeader().getMode();
-				byte[] user = msg.getHeader().getBUser();
+				byte[] bUser = msg.getHeader().getBUser();
+				long user = bytesToLong(bUser);
 				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
-					System.out.println("Recebendo arquivo do cliente");
 
-					Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, user, bNomeArq, body);
+					Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 					byte[] message = m.getMessage();
 					dos.write(message);
 
 				} else {
 					if (mode == RECEBE_REQ_CLIENT) {
 						// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
-						System.out.println("Recebendo requisicao do cliente");
-
+						
 						// Se o usuario possui acesso, entao envie a requisicao ao storage
-						if (userTemAcesso(bytesToLong(user), new String(body, StandardCharsets.UTF_8))) {
-							Mensagem m = new Mensagem(ENVIA_REQ_STORAGE, user, bNomeArq, body);
+						if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
+							Mensagem m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
 							byte[] message = m.getMessage();
 							dos.write(message);
 						}
@@ -314,7 +309,6 @@ class StorageHandler extends Thread {
 				c = 0;
 
 				Mensagem msg = new Mensagem(received);
-				System.out.println("headddd: "+ msg.getHeader().headerSize());
 				byte mode = msg.getHeader().getMode();
 				byte[] user = msg.getHeader().getBUser();
 				byte[] bNomeArq = msg.getHeader().getBNome();
@@ -322,8 +316,6 @@ class StorageHandler extends Thread {
 
 				if (mode == RECEBE_ARQ_STORAGE) {
 					// -- TRANSFERENCIA: STORAGE -> Server -> Client
-					System.out.println("Recebendo arquivo do storage");
-					
 					Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 					byte[] message = m.getMessage();
 					dos.write(message);

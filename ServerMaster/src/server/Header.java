@@ -43,11 +43,9 @@ public class Header {
 			j++;
 		}
 		j=0;
-		System.out.println("1-k = " + k);
 
 		// Modo
 		_header[k++] = _mode;
-		System.out.println("2-k = " + k);
 
 		// Usuario
 		byte[] bytesId = _id;
@@ -58,7 +56,6 @@ public class Header {
 			j++;
 			k++;
 		}
-		System.out.println("3-k = " + k);
 		
 		j=0;
 		
@@ -71,7 +68,6 @@ public class Header {
 			j++;
 			k++;
 		}
-		System.out.println("4-k = " + k);
 		
 		j=0;
 		
@@ -83,9 +79,6 @@ public class Header {
 			k++;
 		}
 		j=0;
-		System.out.println("5-k = " + k);
-		
-		System.out.println("K = "+ k);
 		
 		this.header = _header;
 		

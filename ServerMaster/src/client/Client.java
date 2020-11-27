@@ -53,7 +53,7 @@ public class Client {
 			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
 					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
 			t.setName(name);
-			System.out.println("Iniciando Thread para recebimento de arquivos");
+			//System.out.println("Iniciando Thread para recebimento de arquivos");
 			t.start();
 
 			boolean loop = true;
@@ -90,10 +90,8 @@ public class Client {
 
 				if (opcao != "closed") {
 					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
-					System.out.println("testttt : " + m.getHeader().headerSize());
 					byte[] message = m.getMessage();
 
-					System.out.println("dos write");
 					dos.write(message);
 				}
 			}
@@ -181,29 +179,34 @@ class ServerHandler extends Thread {
 		ArrayList<Byte> receivedList = new ArrayList<Byte>();
 		while (true) {
 			try {
-				// Ask user what he wants
-
-				// receive the answer from client
-				// received = dis.readUTF();
-
 				// READING
-				byte[] auxByte = new byte[1];
-				while (dis.read(auxByte) != -1) {
-					receivedList.add(new Byte(auxByte[0]));
+				int lenght = dis.readInt();
+
+				byte[] received = new byte[lenght];
+				// Reconstroi o int lido
+				byte[] lb = intToBytes(lenght);
+				for (int i = 0; i < Integer.BYTES; i++) {
+					received[i] = lb[i];
 				}
-				byte[] received = new byte[receivedList.size()];
-				for (int i = 0; i < receivedList.size(); i++) {
-					received[i] = receivedList.get(i).byteValue();
+
+				byte[] buffer = new byte[lenght - Integer.BYTES];
+				dis.readFully(buffer);
+				int c = 0;
+				for (int i = Integer.BYTES; i < lenght; i++) {
+					received[i] = buffer[c];
+					c++;
 				}
+				c = 0;
 
 				Mensagem msg = new Mensagem(received);
 				byte mode = msg.getHeader().getMode();
-//				byte[] user = msg.getHeader().getBUser();
-//				byte[] bNomeArq = msg.getHeader().getBNome();
+				byte[] bUser = msg.getHeader().getBUser();
+				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
-
+				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
+				
 				if (mode == RECEBE_ARQ) {
-					writeArq(body);
+					writeArq(body, nomeArq);
 				}
 
 			} catch (IOException e) {
@@ -213,16 +216,27 @@ class ServerHandler extends Thread {
 	}
 
 	//Cria o arquivo
-	public static void writeArq(byte[] arq) {
-		// TODO: Colocar nome
-		try (FileOutputStream stream = new FileOutputStream("aaa")) {
+	public static void writeArq(byte[] arq, String _nomeArq) {
+		System.out.println("CLIENT - Arquivo criado.");
+		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(arq);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Arquivo criado.");
+		
+	}
+	
+	public static byte[] intToBytes(int i) {
+		byte[] result = new byte[4];
+
+		result[0] = (byte) (i >> 24);
+		result[1] = (byte) (i >> 16);
+		result[2] = (byte) (i >> 8);
+		result[3] = (byte) (i);
+
+		return result;
 	}
 
 }

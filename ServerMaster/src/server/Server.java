@@ -149,24 +149,24 @@ class ClientHandler extends Thread {
 
 				byte[] received = new byte[lenght];
 				
-//				// Reconstroi o int lido
-//				byte[] lb = intToBytes(lenght);
-//				for (int i = 0; i < Integer.BYTES; i++) {
-//					received[i] = lb[i];
-//				}
+				// Reconstroi o int lido
+				byte[] lb = intToBytes(lenght);
+				for (int i = 0; i < Integer.BYTES; i++) {
+					received[i] = lb[i];
+				}
 
-//				byte[] buffer = new byte[lenght - Integer.BYTES];
-				//dis.readFully(buffer);
+				byte[] buffer = new byte[lenght - Integer.BYTES];
+				dis.readFully(buffer);
 				
-				dis.readFully(received);
+				//dis.readFully(received);
 				System.out.println("received = "+ received.length);
 				
-//				int c = 0;
-//				for (int i = Integer.BYTES; i < lenght; i++) {
-//					received[i] = buffer[c];
-//					c++;
-//				}
-//				c = 0;
+				int c = 0;
+				for (int i = Integer.BYTES; i < lenght; i++) {
+					received[i] = buffer[c];
+					c++;
+				}
+				c = 0;
 				
 				Mensagem msg = new Mensagem(received);
 				System.out.println("headdd = " + msg.getHeader().headerSize());

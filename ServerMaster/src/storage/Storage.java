@@ -79,16 +79,16 @@ public class Storage {
 						System.out.println("_msg len = " + received.length);
 
 						Mensagem msg = new Mensagem(received);
+						System.out.println("headddd: "+ msg.getHeader().headerSize());
 						byte mode = msg.getHeader().getMode();
 						byte[] user = msg.getHeader().getBUser();
 						byte[] bNomeArq = msg.getHeader().getBNome();
 						byte[] body = msg.getBody();
-						
+						String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 						
 						if (mode == RECEBE_REQ_SERVER) {
 							System.out.println("RECEBE_REQ_SERVER");
-							String nomeArq = new String(body, StandardCharsets.UTF_8);
-
+							
 							byte[] arq = getArq(nomeArq);
 
 							Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
@@ -98,7 +98,7 @@ public class Storage {
 						} else {
 							if (mode == RECEBE_ARQ_SERVER) {
 								System.out.println("RECEBE_ARQ_SERVER");
-								writeArq(body);
+								writeArq(body, nomeArq);
 							}
 						}
 
@@ -121,7 +121,7 @@ public class Storage {
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
 
-		File file = new File("bbb");// TODO: implement, isso eh so pra teste
+		File file = new File(_nome);// TODO: implement, isso eh so pra teste
 
 		arq = readContentIntoByteArray(file);
 
@@ -150,12 +150,12 @@ public class Storage {
 	}
 
 	// Cria o arquivo
-	private static void writeArq(byte[] _arq) {
+	private static void writeArq(byte[] _arq, String _nomeArq) {
 
 		// TODO: implement, so pra teste
 		// SOMENTE PARA TESTE - AQUI DEVE FICAR O CODIGO PARA GRAVACAO APROPRIADO NO
 		// STORAGE
-		try (FileOutputStream stream = new FileOutputStream("bbb")) {
+		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(_arq);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

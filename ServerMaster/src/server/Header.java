@@ -11,17 +11,17 @@ public class Header {
 	private byte[] header;
 	
 	//Constantes de indice
-	private static final int INDEX_TAM_MESSAGE = 0;
-	private static final int INDEX_MODE = 4;
-	private static final int INDEX_USER = 5;
-	private static final int INDEX_TAM_NOME = 13;
-	private static final int INDEX_NOME = 17;
+	public static final int INDEX_TAM_MESSAGE = 0;
+	public static final int INDEX_MODE = 4;
+	public static final int INDEX_USER = 5;
+	public static final int INDEX_TAM_NOME = 13;
+	public static final int INDEX_NOME = 17;
 	
 	//Constantes de tamanho (NOTA: o nome do arquivo nao possui tamanho constante)
-	private static final int SIZE_TAM_MESSAGE = 4;
+	public static final int SIZE_TAM_MESSAGE = 4;
 	//private static final int SIZE_MODE = 1;
-	private static final int SIZE_USER = 8;
-	private static final int SIZE_TAM_NOME = 4;
+	public static final int SIZE_USER = 8;
+	public static final int SIZE_TAM_NOME = 4;
 	
 	//==================== CONSTRUTORES ======================================================
 	

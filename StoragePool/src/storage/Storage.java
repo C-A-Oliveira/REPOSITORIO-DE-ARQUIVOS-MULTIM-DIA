@@ -24,40 +24,64 @@ public class Storage {
 	public static void main(String[] args) throws IOException {
 //		testAESEncryptionAndDecryption();
 		// server is listening on port 33333
-		ServerSocket ss = new ServerSocket(33335);
+		//ServerSocket ss = new ServerSocket(33336);
 
 		// running infinite loop for getting client request
 		boolean loop = true;
 		while (loop) {
-			Socket s = null;
 
 			try {
 				// socket object to receive incoming client requests
-				s = ss.accept();
+				int sPort = Integer.parseInt(args[1]);
+				int cPort = Integer.parseInt(args[3]);
+				byte[] sip = { 0, 0, 0, 0 };
+				byte[] cip = { 0, 0, 0, 0 };
+				String[] S = args[0].replace('.', '-').split("-");
+				for (int i = 0; i < 4; i++)
+					sip[i] = Byte.parseByte(S[i]);
+				InetAddress sIP = InetAddress.getByAddress(sip);
+				String[] C = args[2].replace('.', '-').split("-");
+				for (int i = 0; i < 4; i++)
+					cip[i] = Byte.parseByte(C[i]);
+				InetAddress cIP = InetAddress.getByAddress(cip);
+				Socket s = new Socket(sIP, sPort, cIP, cPort);
+				
 				byte[] cADDR = s.getInetAddress().getAddress();
 				String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
 						+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
 
-				System.out.println("A new client is connected : " + s);
+				//System.out.println("A new client is connected : " + s);
 
 				// obtaining input and out streams
 				DataInputStream dis = new DataInputStream(s.getInputStream());
 				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
-				System.out.println("Assigning new thread client " + name);
-
 				// READ
 				ArrayList<Byte> receivedList = new ArrayList<Byte>();
 				while (true) {
+					System.out.println("inside the loop");
 					try {
+						// READING
 						byte[] auxByte = new byte[1];
-						while (dis.read(auxByte) != -1) {
-							receivedList.add(new Byte(auxByte[0]));
+
+						int lenght = dis.readInt();
+
+						byte[] received = new byte[lenght];
+						// Reconstroi o int lido
+						byte[] lb = intToBytes(lenght);
+						for (int i = 0; i < Integer.BYTES; i++) {
+							received[i] = lb[i];
 						}
-						byte[] received = new byte[receivedList.size()];
-						for (int i = 0; i < receivedList.size(); i++) {
-							received[i] = receivedList.get(i).byteValue();
+
+						byte[] buffer = new byte[lenght - Integer.BYTES];
+						dis.readFully(buffer);
+						int c = 0;
+						for (int i = Integer.BYTES; i < lenght; i++) {
+							received[i] = buffer[c];
+							c++;
 						}
+						c = 0;
+						System.out.println("_msg len = " + received.length);
 
 						// DIVIDINDO
 						byte[][] split = splitMessage(received);
@@ -65,11 +89,13 @@ public class Storage {
 						byte[] header = split[0];
 						byte[] body = split[1];
 
-						byte mode = header[0];
+						byte mode = header[Integer.BYTES];
 						byte[] user = new byte[header.length - 1];
 						System.arraycopy(header, 1, user, 0, header.length - 1);
+						System.out.println("end of split");
 
 						if (mode == RECEBE_REQ_SERVER) {
+							System.out.println("RECEBE_REQ_SERVER");
 							String nomeArq = new String(body, StandardCharsets.UTF_8);
 
 							byte[] arq = getArq(nomeArq);
@@ -79,6 +105,7 @@ public class Storage {
 							dos.write(message);
 						} else {
 							if (mode == RECEBE_ARQ_SERVER) {
+								System.out.println("RECEBE_ARQ_SERVER");
 								writeArq(body);
 							}
 						}
@@ -89,11 +116,11 @@ public class Storage {
 
 				}
 			} catch (Exception e) {
-				s.close();
+				System.out.println(e.toString());
 				e.printStackTrace();
 			}
 		}
-		ss.close();
+		//ss.close();
 	}
 
 	// ============ Metodos de mensagem ============================

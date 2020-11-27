@@ -62,7 +62,7 @@ public class Client {
 				System.out.println("Digite 'download' para baixar um arquivo.");
 				System.out.println("Digite 'sair' para sair.");
 				String opcao = scn.nextLine();
-				byte modo = 0x00;
+				byte modo = (byte)0x00;
 				byte[] bytes = null;
 
 				switch (opcao) {

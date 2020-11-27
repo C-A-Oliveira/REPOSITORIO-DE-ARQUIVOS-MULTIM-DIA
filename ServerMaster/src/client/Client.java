@@ -10,9 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import server.Mensagem;
+
 // Client class 
 public class Client {
-	private static long id; // Acho que String nao possui tamanho confiavel, isso dificulta o uso de header
+	private static long id = 4; //TODO: como passar um id diferente?
 
 	public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
@@ -76,7 +78,7 @@ public class Client {
 					modo = ENVIA_REQ;
 					System.out.println("Escreva o nome do arquivo a ser baixado: ");
 					nomeArq = scn.nextLine();
-					bytes = nomeArq.getBytes(StandardCharsets.UTF_8);
+					bytes = new byte[0]; //TODO: verificar
 					break;
 				case "closed":
 					System.out.println("Fechando conexao: " + s);
@@ -87,14 +89,12 @@ public class Client {
 				}
 
 				if (opcao != "closed") {
-					byte[] message = makeMessage(modo, id, nomeArq, bytes);
+					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
+					System.out.println("testttt : " + m.getHeader().headerSize());
+					byte[] message = m.getMessage();
 
 					System.out.println("dos write");
 					dos.write(message);
-
-					// printing date or time as requested by client
-					// String received = dis.readUTF();
-					// System.out.println(received);
 				}
 			}
 			// closing resources
@@ -104,72 +104,6 @@ public class Client {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-	
-	//Constroi a mensagem (retorna a mensagem ja com cabecalho)
-	public static byte[] makeMessage(byte _mode, long _id, String _nome, byte[] _body) {
-
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-		
-		int k = 0;
-		
-		// Header
-		// Tamanho
-		byte[] lb = intToBytes(message.length);
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = lb[i];
-			k++;
-		}
-
-		// Modo
-		header[k++] = _mode;
-
-		// Usuario
-		byte[] bytesId = longToBytes(_id);
-		int j = 0;
-		for (int i = k; i < bytesId.length; i++) {
-			header[i] = bytesId[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Tamanho Nome do arq
-		byte[] bytesNome = _nome.getBytes(StandardCharsets.UTF_8);
-		byte[] nlb = intToBytes( bytesNome.length );
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = nlb[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Nome do arq
-		for(int i=k;i<bytesNome.length;i++) {
-			header[i] = bytesNome[j];
-			j++;
-			k++;
-		}
-		
-
-		// MESSAGE - Concatena header e body
-		// Header
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		// Body
-		j = 0;
-		for (int i = header.length; i < _body.length + header.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-
-		return message;
 	}
 	
 	//============ METODOS UTILITARIOS =====================
@@ -262,22 +196,11 @@ class ServerHandler extends Thread {
 					received[i] = receivedList.get(i).byteValue();
 				}
 
-				// DIVIDINDO
-				byte[][] split = splitMessage(received);
-
-				byte[] header = split[0];
-				byte[] body = split[1];
-
-				//TODO: simplificar esse processo...
-				byte mode = header[Integer.BYTES];
-				System.out.println("modo = " + mode);
-				byte[] user = new byte[Long.BYTES];
-				System.arraycopy(header, Integer.BYTES + 1, user, 0, user.length);
-				byte[] bTamNome = new byte[Integer.BYTES]; 
-				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES, bTamNome, 0, bTamNome.length);
-				int tamNome = bytesToInt(bTamNome);
-				byte[] bNomeArq = new byte[tamNome];
-				System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES + Integer.BYTES, bNomeArq, 0, bNomeArq.length);
+				Mensagem msg = new Mensagem(received);
+				byte mode = msg.getHeader().getMode();
+//				byte[] user = msg.getHeader().getBUser();
+//				byte[] bNomeArq = msg.getHeader().getBNome();
+				byte[] body = msg.getBody();
 
 				if (mode == RECEBE_ARQ) {
 					writeArq(body);
@@ -300,41 +223,6 @@ class ServerHandler extends Thread {
 			e.printStackTrace();
 		}
 		System.out.println("Arquivo criado.");
-	}
-	
-	//Divide a mensagem em cabecalho e corpo. retorna um array de byte[] (array de array)
-	public static byte[][] splitMessage(byte[] _msg) {
-
-		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
-		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
-		int sizeBody = _msg.length - sizeHeader;
-		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
-
-		byte[] header = new byte[sizeHeader];
-		byte[] body = new byte[sizeBody];
-
-		for (int i = 0; i < header.length; i++) {
-			header[i] = _msg[i];
-		}
-
-		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
-			body[j] = _msg[i];
-			j++;
-		}
-		j = 0;
-
-		splitMsg[0] = header;
-		splitMsg[1] = body;
-
-		return splitMsg;
-	}
-	
-	public static int bytesToInt(byte[] bytes) {
-	     return ((bytes[0] & 0xFF) << 24) | 
-	            ((bytes[1] & 0xFF) << 16) | 
-	            ((bytes[2] & 0xFF) << 8 ) | 
-	            ((bytes[3] & 0xFF) << 0 );
 	}
 
 }

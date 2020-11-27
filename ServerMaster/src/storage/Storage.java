@@ -2,16 +2,11 @@ package storage;
 
 import java.io.*;
 
-import java.lang.UnsupportedOperationException;
-import java.text.*;
-import java.util.*;
-import java.util.concurrent.Semaphore;
-
 import crypto.AsymmetricCryptoManager;
 import crypto.SymmetricCryptoManager;
+import server.Mensagem;
 
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 
@@ -47,9 +42,9 @@ public class Storage {
 				InetAddress cIP = InetAddress.getByAddress(cip);
 				Socket s = new Socket(sIP, sPort, cIP, cPort);
 				
-				byte[] cADDR = s.getInetAddress().getAddress();
-				String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
-						+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+				//byte[] cADDR = s.getInetAddress().getAddress();
+//				String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
+//						+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
 
 				//System.out.println("A new client is connected : " + s);
 
@@ -58,12 +53,11 @@ public class Storage {
 				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
 				// READ
-				ArrayList<Byte> receivedList = new ArrayList<Byte>();
+				//ArrayList<Byte> receivedList = new ArrayList<Byte>();
 				while (true) {
 					System.out.println("inside the loop");
 					try {
 						// READING
-						byte[] auxByte = new byte[1];
 
 						int lenght = dis.readInt();
 
@@ -84,21 +78,11 @@ public class Storage {
 						c = 0;
 						System.out.println("_msg len = " + received.length);
 
-						// DIVIDINDO
-						byte[][] split = splitMessage(received);
-
-						byte[] header = split[0];
-						byte[] body = split[1];
-
-						byte mode = header[Integer.BYTES];
-						System.out.println("modo = " + mode);
-						byte[] user = new byte[Long.BYTES];
-						System.arraycopy(header, Integer.BYTES + 1, user, 0, user.length);
-						byte[] bTamNome = new byte[Integer.BYTES]; 
-						System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES, bTamNome, 0, bTamNome.length);
-						int tamNome = bytesToInt(bTamNome);
-						byte[] bNomeArq = new byte[tamNome];
-						System.arraycopy(header, Integer.BYTES + 1 + Long.BYTES + Integer.BYTES, bNomeArq, 0, bNomeArq.length);
+						Mensagem msg = new Mensagem(received);
+						byte mode = msg.getHeader().getMode();
+						byte[] user = msg.getHeader().getBUser();
+						byte[] bNomeArq = msg.getHeader().getBNome();
+						byte[] body = msg.getBody();
 						
 						
 						if (mode == RECEBE_REQ_SERVER) {
@@ -107,7 +91,8 @@ public class Storage {
 
 							byte[] arq = getArq(nomeArq);
 
-							byte[] message = makeMessage(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
+							Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
+							byte[] message = m.getMessage();
 
 							dos.write(message);
 						} else {
@@ -130,174 +115,7 @@ public class Storage {
 		//ss.close();
 	}
 
-	// ============ Metodos de mensagem ============================
-	// Divide mensagem em cabecalho e corpo. retorna um array de byte[] (array de
-	// array)
-	public static byte[][] splitMessage(byte[] _msg) {
-
-		int sizeHeader = Integer.BYTES + 1 + Long.BYTES;
-		System.out.println("teste: " + _msg.length + " - " + sizeHeader);
-		int sizeBody = _msg.length - sizeHeader;
-		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
-
-		byte[] header = new byte[sizeHeader];
-		byte[] body = new byte[sizeBody];
-
-		for (int i = 0; i < header.length; i++) {
-			header[i] = _msg[i];
-		}
-
-		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
-			body[j] = _msg[i];
-			j++;
-		}
-		j = 0;
-
-		splitMsg[0] = header;
-		splitMsg[1] = body;
-
-		return splitMsg;
-	}
-
-	// Cria a mensagem a ser enviada, com cabecalho
-	public static byte[] makeMessage(byte _mode, byte[] _id, byte[] _nome, byte[] _body) {
-
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-		
-		int k = 0;
-		
-		// Header
-		// Tamanho
-		byte[] lb = intToBytes(message.length);
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = lb[i];
-			k++;
-		}
-
-		// Modo
-		header[k++] = _mode;
-
-		// Usuario
-		byte[] bytesId = _id;
-		int j = 0;
-		for (int i = k; i < bytesId.length; i++) {
-			header[i] = bytesId[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Tamanho Nome do arq
-		byte[] bytesNome = _nome;
-		byte[] nlb = intToBytes( bytesNome.length );
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = nlb[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Nome do arq
-		for(int i=k;i<bytesNome.length;i++) {
-			header[i] = bytesNome[j];
-			j++;
-			k++;
-		}
-		
-
-		// MESSAGE - Concatena header e body
-		// Header
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		// Body
-		j = 0;
-		for (int i = header.length; i < _body.length + header.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-
-		return message;
-	}
-
-	public static byte[] makeMessage(byte _mode, long _id, String _nome, byte[] _body) {
-
-		byte[] header = new byte[Integer.BYTES + 1 + Long.BYTES + Integer.BYTES];
-		byte[] message = new byte[header.length + _body.length];
-		
-		int k = 0;
-		
-		// Header
-		// Tamanho
-		byte[] lb = intToBytes(message.length);
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = lb[i];
-			k++;
-		}
-
-		// Modo
-		header[k++] = _mode;
-
-		// Usuario
-		byte[] bytesId = longToBytes(_id);
-		int j = 0;
-		for (int i = k; i < bytesId.length; i++) {
-			header[i] = bytesId[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Tamanho Nome do arq
-		byte[] bytesNome = _nome.getBytes(StandardCharsets.UTF_8);
-		byte[] nlb = intToBytes( bytesNome.length );
-		for (int i = k; i < Integer.BYTES; i++) {
-			header[i] = nlb[j];
-			j++;
-			k++;
-		}
-		
-		j=0;
-		
-		//Nome do arq
-		for(int i=k;i<bytesNome.length;i++) {
-			header[i] = bytesNome[j];
-			j++;
-			k++;
-		}
-		
-
-		// MESSAGE - Concatena header e body
-		// Header
-		for (int i = 0; i < header.length; i++) {
-			message[i] = header[i];
-		}
-
-		// Body
-		j = 0;
-		for (int i = header.length; i < _body.length + header.length; i++) {
-			message[i] = _body[j];
-			j++;
-		}
-
-
-		return message;
-	}
-
 	// ===================== METODOS de arquivo ===============================
-	
-	public static byte[] longToBytes(long x) {
-		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-		buffer.putLong(x);
-		return buffer.array();
-	}
 	
 	// retorna os bytes[] de um arquivo especificado
 	private static byte[] getArq(String _nome) {
@@ -349,14 +167,7 @@ public class Storage {
 		// return arq;
 	}
 	
-	//Metodo utiliario
-	
-	public static int bytesToInt(byte[] bytes) {
-	     return ((bytes[0] & 0xFF) << 24) | 
-	            ((bytes[1] & 0xFF) << 16) | 
-	            ((bytes[2] & 0xFF) << 8 ) | 
-	            ((bytes[3] & 0xFF) << 0 );
-	}
+	// ===================== Metodo utiliario ========================================
 	
 	// Retorna os bytes[] de um int
 	public static byte[] intToBytes(int i) {

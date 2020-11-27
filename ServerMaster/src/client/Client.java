@@ -100,6 +100,14 @@ public class Client {
 
 				if (opcao != "closed") {
 					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
+					
+					//TESTE
+					System.out.println(bytes.length);
+					
+					//TESTE
+					System.out.println(">h = " + m.getHeader().getHeader().length);
+					m.showMessage();
+					
 					byte[] message = m.getMessage();
 
 					dos.write(message);

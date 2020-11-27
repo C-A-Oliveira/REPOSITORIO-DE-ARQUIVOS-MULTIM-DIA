@@ -83,6 +83,9 @@ public class Storage {
 						byte[] body = msg.getBody();
 						String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 						
+						//TESTE
+						msg.showMessage();
+						
 						if (mode == RECEBE_REQ_SERVER) {
 							//Download
 							byte[] arq = getArq(nomeArq);
@@ -93,6 +96,13 @@ public class Storage {
 							dos.write(message);
 						} else {
 							if (mode == RECEBE_ARQ_SERVER) {
+								
+								//TESTE
+								System.out.println("> b = "+body.length);
+								
+								//TESTE
+								//System.out.println(">h = " + m.getHeader().getHeader().length);
+								
 								//Upload
 								writeArq(body, nomeArq);
 							}

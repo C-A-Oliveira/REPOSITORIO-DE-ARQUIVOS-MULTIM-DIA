@@ -174,8 +174,16 @@ class ClientHandler extends Thread {
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
+					
+					//TESTE
+					System.out.println(body.length);
 
 					Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
+					
+					//TESTE
+					System.out.println(">h = " + m.getHeader().getHeader().length);
+					m.showMessage();
+					
 					byte[] message = m.getMessage();
 					dos.write(message);
 
@@ -316,6 +324,7 @@ class StorageHandler extends Thread {
 
 				if (mode == RECEBE_ARQ_STORAGE) {
 					// -- TRANSFERENCIA: STORAGE -> Server -> Client
+					
 					Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 					byte[] message = m.getMessage();
 					dos.write(message);

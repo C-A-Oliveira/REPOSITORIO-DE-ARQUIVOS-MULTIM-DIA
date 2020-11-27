@@ -29,6 +29,14 @@ public class Mensagem {
 		return concantenateBytes(this.header.getHeader(), this.getBody());
 	}
 	
+	//TESTE
+	public void showMessage() {
+		byte[] m = this.getMessage();
+		for(int i=0;i<m.length;i++) {
+			System.out.print( m[i] + ", " );
+		}
+	}
+	
 	public Header getHeader() {
 		return this.header;
 	}
@@ -40,6 +48,7 @@ public class Mensagem {
 		System.arraycopy(_msg, Header.INDEX_TAM_NOME, bTamNome, 0, bTamNome.length);
 		int tamNome = bytesToInt(bTamNome);
 		
+		//  Tam / Modo / User     / Tamnome / Nomearq
 		int sizeHeader = Integer.BYTES + 1 + Long.BYTES + Integer.BYTES + tamNome;
 		int sizeBody = _msg.length - sizeHeader;
 		byte[][] splitMsg = new byte[sizeHeader][sizeBody];
@@ -52,7 +61,7 @@ public class Mensagem {
 		}
 
 		int j = 0;
-		for (int i = header.length; i < body.length; i++) {
+		for (int i = header.length; i < body.length + header.length; i++) {
 			body[j] = _msg[i];
 			j++;
 		}
@@ -67,9 +76,6 @@ public class Mensagem {
 	// ====================== METODOS UTILITARIOS =================================
 	
 	private static byte[] concantenateBytes(byte[] array1, byte[] array2) {
-		
-		System.out.println("header = " + array1.length);
-		System.out.println("body = " + array2.length);
 		
 		int aLen = array1.length;
         int bLen = array2.length;

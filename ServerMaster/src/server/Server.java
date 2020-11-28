@@ -17,8 +17,11 @@ public class Server {
 //		testAESEncryptionAndDecryption();
 		// server is listening on port 33333
 		ServerSocket ssc = new ServerSocket(33333);
-		ServerSocket sst = new ServerSocket(33335);
-
+		
+		String ipServer = "127.0.0.1"; //Ip desse servidor
+		String portaServer = "33336";
+		String portaStorage = "33335";
+		
 		// running infinite loop for getting client request
 		boolean loop = true;
 		while (loop) {
@@ -28,7 +31,26 @@ public class Server {
 			try {
 				// socket object to receive incoming client requests
 				socketC = ssc.accept();
-				socketSt = sst.accept();
+				
+				//TODO: Alimentar var abaixo com o Storage escolhido
+				String ipStorage = "127.0.0.1";
+				
+				int sPort = Integer.parseInt(portaStorage);
+				int cPort = Integer.parseInt(portaServer);
+				byte[] sip = { 0, 0, 0, 0 };
+				byte[] cip = { 0, 0, 0, 0 };
+				String[] S = ipStorage.replace('.', '-').split("-");
+				for (int i = 0; i < 4; i++)
+					sip[i] = Byte.parseByte(S[i]);
+				InetAddress sIP = InetAddress.getByAddress(sip);
+				String[] C = ipServer.replace('.', '-').split("-");
+				for (int i = 0; i < 4; i++)
+					cip[i] = Byte.parseByte(C[i]);
+				InetAddress cIP = InetAddress.getByAddress(cip);
+
+				socketSt = new Socket(sIP, sPort, cIP, cPort);
+				
+				
 				
 				byte[] ccADDR = socketC.getInetAddress().getAddress();
 				byte[] stADDR = socketSt.getInetAddress().getAddress();
@@ -71,7 +93,7 @@ public class Server {
 			}
 		}
 		ssc.close();
-		sst.close();
+		//sst.close();
 	}
 
 	private static void testAESEncryptionAndDecryption() {

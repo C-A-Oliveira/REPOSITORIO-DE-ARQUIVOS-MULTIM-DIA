@@ -17,11 +17,12 @@ public class Server {
 //		testAESEncryptionAndDecryption();
 		// server is listening on port 33333
 		ServerSocket ssc = new ServerSocket(33333);
-		
-		String ipServer = "127.0.0.1"; //Ip desse servidor
+		ServerSocket sst = new ServerSocket(33335);
+
+		String ipServer = "127.0.0.1"; // Ip desse servidor
 		String portaServer = "33336";
 		String portaStorage = "33335";
-		
+
 		// running infinite loop for getting client request
 		boolean loop = true;
 		while (loop) {
@@ -31,27 +32,16 @@ public class Server {
 			try {
 				// socket object to receive incoming client requests
 				socketC = ssc.accept();
-				
-				//TODO: Alimentar var abaixo com o Storage escolhido
-				String ipStorage = "127.0.0.1";
-				
+				socketSt = sst.accept();
+
 				int sPort = Integer.parseInt(portaStorage);
 				int cPort = Integer.parseInt(portaServer);
-				byte[] sip = { 0, 0, 0, 0 };
-				byte[] cip = { 0, 0, 0, 0 };
-				String[] S = ipStorage.replace('.', '-').split("-");
-				for (int i = 0; i < 4; i++)
-					sip[i] = Byte.parseByte(S[i]);
-				InetAddress sIP = InetAddress.getByAddress(sip);
+				InetAddress sIP = socketSt.getInetAddress();
 				String[] C = ipServer.replace('.', '-').split("-");
-				for (int i = 0; i < 4; i++)
-					cip[i] = Byte.parseByte(C[i]);
-				InetAddress cIP = InetAddress.getByAddress(cip);
+				InetAddress cIP = socketC.getInetAddress();
 
 				socketSt = new Socket(sIP, sPort, cIP, cPort);
-				
-				
-				
+
 				byte[] ccADDR = socketC.getInetAddress().getAddress();
 				byte[] stADDR = socketSt.getInetAddress().getAddress();
 				String nameC = String.valueOf(ccADDR[0]) + "." + String.valueOf(ccADDR[1]) + "."
@@ -59,10 +49,10 @@ public class Server {
 				String nameSt = String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "."
 						+ String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]) + ":" + socketSt.getPort();
 
-				if(socketC != null) {
+				if (socketC != null) {
 					System.out.println("A new client is connected : " + socketC);
 				}
-				if(socketSt != null) {
+				if (socketSt != null) {
 					System.out.println("A new storage is connected : " + socketSt);
 				}
 
@@ -75,8 +65,8 @@ public class Server {
 
 				System.out.println("Assigning new thread client " + nameC);
 				System.out.println("Assigning new thread storage " + nameSt);
-				Thread tC = new ClientHandler( disC, dosSt);
-				Thread tSt = new StorageHandler( disSt, dosC);
+				Thread tC = new ClientHandler(disC, ipServer, portaServer);
+				Thread tSt = new StorageHandler(disSt, dosC);
 
 				// create a new thread object
 				tC.setName(nameC);
@@ -93,7 +83,7 @@ public class Server {
 			}
 		}
 		ssc.close();
-		//sst.close();
+		// sst.close();
 	}
 
 	private static void testAESEncryptionAndDecryption() {
@@ -138,10 +128,12 @@ public class Server {
 //ClientHandler class 
 class ClientHandler extends Thread {
 	final DataInputStream dis;
-	final DataOutputStream dos;
-	//final Socket socket;
+	// final Socket socket;
+	final String ipServer;
+	final String portaServer;
 	Semaphore semUser;
 	Semaphore semArq;
+	Semaphore semPort; // Desnecessario?
 
 	// Constantes do cabecalho
 	public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
@@ -152,12 +144,44 @@ class ClientHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	public ClientHandler(DataInputStream dis, DataOutputStream dos) {
-		//this.socket = s;
+	public ClientHandler(DataInputStream dis, String ipServer, String portServer) {
+		// this.socket = s;
+		this.ipServer = ipServer;
+		this.portaServer = portServer;
 		this.dis = dis;
-		this.dos = dos;
 		semUser = new Semaphore(1);
 		semArq = new Semaphore(1);
+	}
+
+	public void conexao(String ipServer, String portServer, String ipStorage, String portStorage,
+			DataInputStream outDis, DataOutputStream outDos) {
+		try {
+			// semPort.acquire();//DESNECESSARIO?
+
+			int sPort = Integer.parseInt(portStorage);
+			int cPort = Integer.parseInt(portServer);
+			byte[] sip = { 0, 0, 0, 0 };
+			byte[] cip = { 0, 0, 0, 0 };
+			String[] S = ipStorage.replace('.', '-').split("-");
+			for (int i = 0; i < 4; i++)
+				sip[i] = Byte.parseByte(S[i]);
+			InetAddress sIP;
+			sIP = InetAddress.getByAddress(sip);
+
+			String[] C = ipServer.replace('.', '-').split("-");
+			for (int i = 0; i < 4; i++)
+				cip[i] = Byte.parseByte(C[i]);
+			InetAddress cIP = InetAddress.getByAddress(cip);
+			Socket s = new Socket(sIP, sPort, cIP, cPort);
+
+			outDis = new DataInputStream(s.getInputStream());
+			outDos = new DataOutputStream(s.getOutputStream());
+
+			// semPort.release(); //DESNECESSARIO?
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -170,7 +194,7 @@ class ClientHandler extends Thread {
 				int lenght = dis.readInt();
 
 				byte[] received = new byte[lenght];
-				
+
 				// Reconstroi o int lido
 				byte[] lb = intToBytes(lenght);
 				for (int i = 0; i < Integer.BYTES; i++) {
@@ -179,14 +203,14 @@ class ClientHandler extends Thread {
 
 				byte[] buffer = new byte[lenght - Integer.BYTES];
 				dis.readFully(buffer);
-				
+
 				int c = 0;
 				for (int i = Integer.BYTES; i < lenght; i++) {
 					received[i] = buffer[c];
 					c++;
 				}
 				c = 0;
-				
+
 				Mensagem msg = new Mensagem(received);
 				byte mode = msg.getHeader().getMode();
 				byte[] bUser = msg.getHeader().getBUser();
@@ -196,34 +220,50 @@ class ClientHandler extends Thread {
 
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
-					
-					//TESTE
+
+					// TESTE
 					System.out.println(body.length);
 
+					// Escolha do storage
+					String[] splitEscolha = escolhaStorageUpload();
+					String ipStorage = splitEscolha[0];
+					String portaStorage = splitEscolha[1];
+					DataInputStream stdis = null;
+					DataOutputStream stdos = null;
+					conexao(this.ipServer, this.portaServer, ipStorage, portaStorage, stdis, stdos);
+
 					Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
+					byte[] message = m.getMessage();
 					
-					//TESTE
+					// TESTE
 					System.out.println(">h = " + m.getHeader().getHeader().length);
 					m.showMessage();
-					
-					byte[] message = m.getMessage();
-					dos.write(message);
 
+					stdos.write(message);
 				} else {
 					if (mode == RECEBE_REQ_CLIENT) {
 						// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
-						
 						// Se o usuario possui acesso, entao envie a requisicao ao storage
 						if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
 							Mensagem m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
 							byte[] message = m.getMessage();
-							dos.write(message);
+
+							// Escolha do storage
+							String[] splitEscolha = escolhaStorageDownload();
+							String ipStorage = splitEscolha[0];
+							String portaStorage = splitEscolha[1];
+							DataInputStream stdis = null;
+							DataOutputStream stdos = null;
+							conexao(this.ipServer, this.portaServer, ipStorage, portaStorage, stdis, stdos);
+
+							stdos.write(message);
 						}
 					}
 				}
 
-				//System.out.println("received message from client " + this.socket.getPort() + "! >> "
-						//+ new String(received, StandardCharsets.UTF_8));
+				// System.out.println("received message from client " + this.socket.getPort() +
+				// "! >> "
+				// + new String(received, StandardCharsets.UTF_8));
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -239,6 +279,30 @@ class ClientHandler extends Thread {
 //			e.printStackTrace();
 //		}
 	}// Fim do metodo run
+
+	//Qual storage tem espaço?
+	public String[] escolhaStorageUpload() {
+		// TODO: implementar escolha
+		String ipStorage = "127.0.0.1";
+		String portStorage = "33336";
+
+		String[] resultado = new String[2];
+		resultado[0] = ipStorage;
+		resultado[1] = portStorage;
+		return resultado;
+	}
+	
+	//Qual storage tem o arquivo? Envie a REQUISICAO para ele
+	public String[] escolhaStorageDownload() {
+		// TODO: implementar escolha
+		String ipStorage = "127.0.0.1";
+		String portStorage = "33336";
+
+		String[] resultado = new String[2];
+		resultado[0] = ipStorage;
+		resultado[1] = portStorage;
+		return resultado;
+	}
 
 	// ==================== USER TEM ACESSO? ======================
 	public boolean userTemAcesso(long user, String arg) {
@@ -273,12 +337,10 @@ class ClientHandler extends Thread {
 
 		return result;
 	}
-	
+
 	public static int bytesToInt(byte[] bytes) {
-	     return ((bytes[0] & 0xFF) << 24) | 
-	            ((bytes[1] & 0xFF) << 16) | 
-	            ((bytes[2] & 0xFF) << 8 ) | 
-	            ((bytes[3] & 0xFF) << 0 );
+		return ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8)
+				| ((bytes[3] & 0xFF) << 0);
 	}
 
 	public static long bytesToLong(byte[] bytes) {
@@ -293,7 +355,7 @@ class ClientHandler extends Thread {
 class StorageHandler extends Thread {
 	final DataInputStream dis;
 	final DataOutputStream dos;
-	//final Socket s;
+	// final Socket s;
 	Semaphore semUser;
 	Semaphore semArq;
 
@@ -306,8 +368,8 @@ class StorageHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	public StorageHandler( DataInputStream dis, DataOutputStream dos) {
-		//this.s = s;
+	public StorageHandler(DataInputStream dis, DataOutputStream dos) {
+		// this.s = s;
 		this.dis = dis;
 		this.dos = dos;
 		semUser = new Semaphore(1);
@@ -346,14 +408,15 @@ class StorageHandler extends Thread {
 
 				if (mode == RECEBE_ARQ_STORAGE) {
 					// -- TRANSFERENCIA: STORAGE -> Server -> Client
-					
+
 					Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 					byte[] message = m.getMessage();
 					dos.write(message);
 				}
 
-				//System.out.println("received message from client " + this.s.getPort() + "! >> "
-						//+ new String(received, StandardCharsets.UTF_8));
+				// System.out.println("received message from client " + this.s.getPort() + "! >>
+				// "
+				// + new String(received, StandardCharsets.UTF_8));
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -388,18 +451,16 @@ class StorageHandler extends Thread {
 	// ========== METODOS UTILITARIOS =================
 
 	public static int bytesToInt(byte[] bytes) {
-	     return ((bytes[0] & 0xFF) << 24) | 
-	            ((bytes[1] & 0xFF) << 16) | 
-	            ((bytes[2] & 0xFF) << 8 ) | 
-	            ((bytes[3] & 0xFF) << 0 );
+		return ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8)
+				| ((bytes[3] & 0xFF) << 0);
 	}
-	
+
 	public static byte[] longToBytes(long x) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 		buffer.putLong(x);
 		return buffer.array();
 	}
-	
+
 	public static long bytesToLong(byte[] bytes) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 		buffer.put(bytes);
@@ -418,5 +479,4 @@ class StorageHandler extends Thread {
 		return result;
 	}
 
-	
 }

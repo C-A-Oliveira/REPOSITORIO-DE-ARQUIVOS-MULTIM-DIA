@@ -31,16 +31,9 @@ public class Client {
 			// InetAddress ip = InetAddress.getByName("localhost");
 			int sPort = Integer.parseInt(args[1]);
 			int cPort = Integer.parseInt(args[3]);
-			byte[] sip = { 0, 0, 0, 0 };
-			byte[] cip = { 0, 0, 0, 0 };
-			String[] S = args[0].replace('.', '-').split("-");
-			for (int i = 0; i < 4; i++)
-				sip[i] = Byte.parseByte(S[i]);
-			InetAddress sIP = InetAddress.getByAddress(sip);
-			String[] C = args[2].replace('.', '-').split("-");
-			for (int i = 0; i < 4; i++)
-				cip[i] = Byte.parseByte(C[i]);
-			InetAddress cIP = InetAddress.getByAddress(cip);
+
+			InetAddress sIP = InetAddress.getByName(args[0]);
+			InetAddress cIP = InetAddress.getByName(args[2]);
 
 			// establish the connection
 			Socket s = new Socket(sIP, sPort, cIP, cPort);

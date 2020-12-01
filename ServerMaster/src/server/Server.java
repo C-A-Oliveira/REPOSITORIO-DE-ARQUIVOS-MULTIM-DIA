@@ -54,8 +54,8 @@ public class Server {
 
 				System.out.println("Assigning new thread client " + nameC);
 				System.out.println("Assigning new thread storage " + nameSt);
-				Thread tC = new ClientHandler(disC);
-				//TODO: Corrigir, cliente deve ser definido dentro da thread, em teoria
+				Thread tC = new ClientHandler(disC, InetAddress.getLocalHost().toString() , "33333");
+				//TODO: Corrigir, cliente dos deve ser definido dentro da thread, em teoria
 				Thread tSt = new StorageHandler(disSt, dosC);
 
 				// create a new thread object
@@ -123,8 +123,8 @@ class ClientHandler extends Thread {
 	Semaphore semArq;
 	Semaphore semPort; // Desnecessario?
 	
-	String ipServer = "localhost"; //TODO: corrigir, deve ser passado para o Thread.
-	String portaServer = "33333"; //TODO: corrigir, deve ser passado para o Thread.
+	final String ipServer;
+	final String portaServer;
 
 	// Constantes do cabecalho
 	public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
@@ -135,24 +135,13 @@ class ClientHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	public ClientHandler(DataInputStream dis) {
+	public ClientHandler(DataInputStream dis,String ipServer,String portaServer) {
 		this.dis = dis;
 		semUser = new Semaphore(1);
 		semArq = new Semaphore(1);
+		this.ipServer = ipServer;
+		this.portaServer = portaServer;
 	}
-
-//	public void conexao(String ipServer, String portServer, String ipStorage, String portStorage) {
-//		try {
-//			// semPort.acquire();//DESNECESSARIO?
-//
-//
-//
-//			// semPort.release(); //DESNECESSARIO?
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
 
 	@Override
 	public void run() {
@@ -219,6 +208,7 @@ class ClientHandler extends Thread {
 
 					System.out.println("writing arq to storage: " + stdos.toString());
 					stdos.write(message);
+					//s.close();
 				} else {
 					if (mode == RECEBE_REQ_CLIENT) {
 						// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
@@ -247,6 +237,7 @@ class ClientHandler extends Thread {
 
 							System.out.println("writing req to storage: " + stdos.toString());
 							stdos.write(message);
+							//s.close();
 						}
 					}
 				}

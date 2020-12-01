@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 import server.Mensagem;
@@ -75,7 +74,7 @@ public class Client {
 					modo = ENVIA_REQ;
 					System.out.println("Escreva o nome do arquivo a ser baixado: ");
 					nomeArq = scn.nextLine();
-					bytes = new byte[0]; //TODO: verificar
+					bytes = new byte[0];
 					break;
 				case "closed":
 					System.out.println("Fechando conexao: " + s);
@@ -84,30 +83,15 @@ public class Client {
 					loop = false;
 					break;
 				}
-				
-				//TESTE
-				if(nomeArq == null) {
-					throw new Exception("Nome do arquivo NULO!");
-				}
-				
 
 				if (opcao != "closed") {
 					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
 					
-					//TESTE
-					System.out.println(bytes.length);
-					
-					//TESTE
-					System.out.println(">h = " + m.getHeader().getHeader().length);
-					m.showMessage();
-					
 					byte[] message = m.getMessage();
-
 					dos.write(message);
 				}
 			}
 			// closing resources
-			scn.close();
 			dis.close();
 			dos.close();
 			scn.close();
@@ -188,7 +172,6 @@ class ServerHandler extends Thread {
 
 	@Override
 	public void run() {
-		ArrayList<Byte> receivedList = new ArrayList<Byte>();
 		while (true) {
 			try {
 				// READING
@@ -211,7 +194,7 @@ class ServerHandler extends Thread {
 
 				Mensagem msg = new Mensagem(received);
 				byte mode = msg.getHeader().getMode();
-				byte[] bUser = msg.getHeader().getBUser();
+				//byte[] bUser = msg.getHeader().getBUser();
 				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
 				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
@@ -229,7 +212,7 @@ class ServerHandler extends Thread {
 	//Cria o arquivo
 	public static void writeArq(byte[] arq, String _nomeArq) {
 		System.out.println("CLIENT - Arquivo criado.");
-		//TODO: alterar path
+		
 		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(arq);
 		} catch (FileNotFoundException e) {

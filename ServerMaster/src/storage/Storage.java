@@ -27,9 +27,9 @@ public class Storage {
 		InetAddress cIP = InetAddress.getByName(args[2]);
 		Socket s = new Socket(sIP, sPort, cIP, cPort);
 		
-		byte[] cADDR = s.getInetAddress().getAddress();
-		String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
-				+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+//		byte[] cADDR = s.getInetAddress().getAddress();
+//		String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
+//				+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
 
 		System.out.println("A new server is connected : " + s);
 		
@@ -107,6 +107,7 @@ public class Storage {
 				e.printStackTrace();
 			}
 		}
+		//s.close();
 		//ss.close();
 	}
 
@@ -116,12 +117,8 @@ public class Storage {
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
 
-		File file = new File(_nome);// TODO: implement, isso eh so pra teste
-
+		File file = new File(_nome);
 		arq = readContentIntoByteArray(file);
-
-		// throw new UnsupportedOperationException("todo, not implemented yet");
-		// implement
 
 		return arq;
 	}

@@ -14,14 +14,11 @@ import java.security.*;
 public class Server {
 
 	public static void main(String[] args) throws IOException {
-//		testAESEncryptionAndDecryption();
-		// server is listening on port 33333
+		//		testAESEncryptionAndDecryption();
+		
+		// server is listening on port 33333 and 33335
 		ServerSocket ssc = new ServerSocket(33333);
 		ServerSocket sst = new ServerSocket(33335);
-
-		String ipServer = "127.0.0.1"; // Ip desse servidor
-		String portaServer = "33336";
-		String portaStorage = "33335";
 
 		// running infinite loop for getting client request
 		boolean loop = true;
@@ -33,13 +30,6 @@ public class Server {
 				// socket object to receive incoming client requests
 				socketC = ssc.accept();
 				socketSt = sst.accept();
-
-//				int sPort = Integer.parseInt(portaStorage);
-//				int cPort = Integer.parseInt(portaServer);
-//				InetAddress sIP = socketSt.getInetAddress();
-//				InetAddress cIP = socketC.getInetAddress();
-//
-//				socketSt = new Socket(sIP, sPort, cIP, cPort);
 
 				byte[] ccADDR = socketC.getInetAddress().getAddress();
 				byte[] stADDR = socketSt.getInetAddress().getAddress();
@@ -57,14 +47,15 @@ public class Server {
 
 				// obtaining input and out streams
 				DataInputStream disC = new DataInputStream(socketC.getInputStream());
-				DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
+				DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());//TODO: remover
 
 				DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
-				DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
+				//DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
 
 				System.out.println("Assigning new thread client " + nameC);
 				System.out.println("Assigning new thread storage " + nameSt);
-				Thread tC = new ClientHandler(disC, ipServer, portaServer);
+				Thread tC = new ClientHandler(disC);
+				//TODO: Corrigir, cliente deve ser definido dentro da thread, em teoria
 				Thread tSt = new StorageHandler(disSt, dosC);
 
 				// create a new thread object
@@ -128,12 +119,12 @@ public class Server {
 //ClientHandler class 
 class ClientHandler extends Thread {
 	final DataInputStream dis;
-	// final Socket socket;
-	final String ipServer;
-	final String portaServer;
 	Semaphore semUser;
 	Semaphore semArq;
 	Semaphore semPort; // Desnecessario?
+	
+	String ipServer = "localhost"; //TODO: corrigir, deve ser passado para o Thread.
+	String portaServer = "33333"; //TODO: corrigir, deve ser passado para o Thread.
 
 	// Constantes do cabecalho
 	public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
@@ -144,10 +135,7 @@ class ClientHandler extends Thread {
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
 	// Constructor
-	public ClientHandler(DataInputStream dis, String ipServer, String portServer) {
-		// this.socket = s;
-		this.ipServer = ipServer;
-		this.portaServer = portServer;
+	public ClientHandler(DataInputStream dis) {
 		this.dis = dis;
 		semUser = new Semaphore(1);
 		semArq = new Semaphore(1);
@@ -173,20 +161,15 @@ class ClientHandler extends Thread {
 			try {
 
 				// READING
-
 				int lenght = dis.readInt();
-
 				byte[] received = new byte[lenght];
-
 				// Reconstroi o int lido
 				byte[] lb = intToBytes(lenght);
 				for (int i = 0; i < Integer.BYTES; i++) {
 					received[i] = lb[i];
 				}
-
 				byte[] buffer = new byte[lenght - Integer.BYTES];
 				dis.readFully(buffer);
-
 				int c = 0;
 				for (int i = Integer.BYTES; i < lenght; i++) {
 					received[i] = buffer[c];
@@ -194,6 +177,7 @@ class ClientHandler extends Thread {
 				}
 				c = 0;
 
+				//Mensagem
 				Mensagem msg = new Mensagem(received);
 				byte mode = msg.getHeader().getMode();
 				byte[] bUser = msg.getHeader().getBUser();
@@ -201,16 +185,15 @@ class ClientHandler extends Thread {
 				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
 
+				//Logica
 				if (mode == RECEBE_ARQ_CLIENT) {
 					// -- UPLOAD: Client (bytes arq) -> Server -> Storage
-
-					// TESTE
-					System.out.println(body.length);
 
 					// Escolha do storage
 					String[] splitEscolha = escolhaStorageUpload();
 					String ipStorage = splitEscolha[0];
 					String portaStorage = splitEscolha[1];
+					
 					DataInputStream stdis = null;
 					DataOutputStream stdos = null;
 					
@@ -294,7 +277,7 @@ class ClientHandler extends Thread {
 	public String[] escolhaStorageUpload() {
 		// TODO: implementar escolha
 		String ipStorage = "localhost";
-		String portStorage = "33337";
+		String portStorage = "33336";
 
 		String[] resultado = new String[2];
 		resultado[0] = ipStorage;
@@ -306,7 +289,7 @@ class ClientHandler extends Thread {
 	public String[] escolhaStorageDownload() {
 		// TODO: implementar escolha
 		String ipStorage = "localhost";
-		String portStorage = "33337";
+		String portStorage = "33336";
 
 		String[] resultado = new String[2];
 		resultado[0] = ipStorage;

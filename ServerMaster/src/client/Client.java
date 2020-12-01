@@ -200,7 +200,6 @@ class ServerHandler extends Thread {
 				for (int i = 0; i < Integer.BYTES; i++) {
 					received[i] = lb[i];
 				}
-
 				byte[] buffer = new byte[lenght - Integer.BYTES];
 				dis.readFully(buffer);
 				int c = 0;

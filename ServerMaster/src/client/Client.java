@@ -110,6 +110,7 @@ public class Client {
 			scn.close();
 			dis.close();
 			dos.close();
+			scn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

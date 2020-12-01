@@ -18,50 +18,34 @@ public class Storage {
 	public static final byte RECEBE_REQ_SERVER = (byte) 0x05;
 
 	public static void main(String[] args) throws IOException {
-//		testAESEncryptionAndDecryption();
-		// server is listening on port 33333
-		//ServerSocket ss = new ServerSocket(33336);
-		//ServerSocket ss = new ServerSocket(33335);
 
 		// running infinite loop for getting client request
+		int sPort = Integer.parseInt(args[1]);
+		int cPort = Integer.parseInt(args[3]);
+
+		InetAddress sIP = InetAddress.getByName(args[0]);
+		InetAddress cIP = InetAddress.getByName(args[2]);
+		Socket s = new Socket(sIP, sPort, cIP, cPort);
+		
+		byte[] cADDR = s.getInetAddress().getAddress();
+		String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
+				+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+
+		System.out.println("A new server is connected : " + s);
+		
+		// obtaining input and out streams
+		DataInputStream dis = new DataInputStream(s.getInputStream());
+		DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+		
 		boolean loop = true;
 		while (loop) {
 
 			try {
-				// socket object to receive incoming client requests
-				int sPort = Integer.parseInt(args[1]);
-				int cPort = Integer.parseInt(args[3]);
-				byte[] sip = { 0, 0, 0, 0 };
-				byte[] cip = { 0, 0, 0, 0 };
-				String[] S = args[0].replace('.', '-').split("-");
-				for (int i = 0; i < 4; i++)
-					sip[i] = Byte.parseByte(S[i]);
-				InetAddress sIP = InetAddress.getByAddress(sip);
-				String[] C = args[2].replace('.', '-').split("-");
-				for (int i = 0; i < 4; i++)
-					cip[i] = Byte.parseByte(C[i]);
-				InetAddress cIP = InetAddress.getByAddress(cip);
-				Socket s = new Socket(sIP, sPort, cIP, cPort);
-				//Socket s = ss.accept();
-				
-				byte[] cADDR = s.getInetAddress().getAddress();
-				String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
-						+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
-
-				//System.out.println("A new client is connected : " + s);
-
-				// obtaining input and out streams
-				DataInputStream dis = new DataInputStream(s.getInputStream());
-				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-				
-				//TODO: considerar mover codigo abaixo para um thread?
-
 				// READ
-				//ArrayList<Byte> receivedList = new ArrayList<Byte>();
 				while (true) {
 					try {
 						// READING
-
+						
 						int lenght = dis.readInt();
 
 						byte[] received = new byte[lenght];
@@ -111,7 +95,9 @@ public class Storage {
 								writeArq(body, nomeArq);
 							}
 						}
-
+					}catch (EOFException a) {
+						a.printStackTrace();
+						break;
 					} catch (IOException e) {
 						e.printStackTrace();
 					}

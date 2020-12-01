@@ -34,13 +34,12 @@ public class Server {
 				socketC = ssc.accept();
 				socketSt = sst.accept();
 
-				int sPort = Integer.parseInt(portaStorage);
-				int cPort = Integer.parseInt(portaServer);
-				InetAddress sIP = socketSt.getInetAddress();
-				String[] C = ipServer.replace('.', '-').split("-");
-				InetAddress cIP = socketC.getInetAddress();
-
-				socketSt = new Socket(sIP, sPort, cIP, cPort);
+//				int sPort = Integer.parseInt(portaStorage);
+//				int cPort = Integer.parseInt(portaServer);
+//				InetAddress sIP = socketSt.getInetAddress();
+//				InetAddress cIP = socketC.getInetAddress();
+//
+//				socketSt = new Socket(sIP, sPort, cIP, cPort);
 
 				byte[] ccADDR = socketC.getInetAddress().getAddress();
 				byte[] stADDR = socketSt.getInetAddress().getAddress();
@@ -80,10 +79,11 @@ public class Server {
 				System.out.println("socket Closed");
 				socketC.close();
 				socketSt.close();
+				break; // TESTE
 			}
 		}
 		ssc.close();
-		// sst.close();
+		sst.close();
 	}
 
 	private static void testAESEncryptionAndDecryption() {
@@ -153,39 +153,22 @@ class ClientHandler extends Thread {
 		semArq = new Semaphore(1);
 	}
 
-	public void conexao(String ipServer, String portServer, String ipStorage, String portStorage,
-			DataInputStream outDis, DataOutputStream outDos) {
-		try {
-			// semPort.acquire();//DESNECESSARIO?
-
-			int sPort = Integer.parseInt(portStorage);
-			int cPort = Integer.parseInt(portServer);
-			byte[] sip = { 0, 0, 0, 0 };
-			byte[] cip = { 0, 0, 0, 0 };
-			String[] S = ipStorage.replace('.', '-').split("-");
-			for (int i = 0; i < 4; i++)
-				sip[i] = Byte.parseByte(S[i]);
-			InetAddress sIP;
-			sIP = InetAddress.getByAddress(sip);
-
-			String[] C = ipServer.replace('.', '-').split("-");
-			for (int i = 0; i < 4; i++)
-				cip[i] = Byte.parseByte(C[i]);
-			InetAddress cIP = InetAddress.getByAddress(cip);
-			Socket s = new Socket(sIP, sPort, cIP, cPort);
-
-			outDis = new DataInputStream(s.getInputStream());
-			outDos = new DataOutputStream(s.getOutputStream());
-
-			// semPort.release(); //DESNECESSARIO?
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+//	public void conexao(String ipServer, String portServer, String ipStorage, String portStorage) {
+//		try {
+//			// semPort.acquire();//DESNECESSARIO?
+//
+//
+//
+//			// semPort.release(); //DESNECESSARIO?
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
 
 	@Override
 	public void run() {
+		System.out.println("executando run da thread ClientHandler");
 		while (true) {
 			try {
 
@@ -230,15 +213,28 @@ class ClientHandler extends Thread {
 					String portaStorage = splitEscolha[1];
 					DataInputStream stdis = null;
 					DataOutputStream stdos = null;
-					conexao(this.ipServer, this.portaServer, ipStorage, portaStorage, stdis, stdos);
+					
+					int sPort = Integer.parseInt(portaStorage);
+					int cPort = Integer.parseInt(portaServer);
+
+					InetAddress sIP;
+					sIP = InetAddress.getByName(ipStorage);
+					InetAddress cIP = InetAddress.getByName(ipServer);
+
+					Socket s = new Socket(sIP, sPort, cIP, cPort);
+
+					stdis = new DataInputStream(s.getInputStream());
+					stdos = new DataOutputStream(s.getOutputStream());
 
 					Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 					byte[] message = m.getMessage();
-					
+
 					// TESTE
-					System.out.println(">h = " + m.getHeader().getHeader().length);
+					// System.out.println(">h = " + m.getHeader().getHeader().length);
 					m.showMessage();
 
+
+					System.out.println("writing arq to storage: " + stdos.toString());
 					stdos.write(message);
 				} else {
 					if (mode == RECEBE_REQ_CLIENT) {
@@ -254,8 +250,19 @@ class ClientHandler extends Thread {
 							String portaStorage = splitEscolha[1];
 							DataInputStream stdis = null;
 							DataOutputStream stdos = null;
-							conexao(this.ipServer, this.portaServer, ipStorage, portaStorage, stdis, stdos);
+							
+							int sPort = Integer.parseInt(portaStorage);
+							int cPort = Integer.parseInt(portaServer);
 
+							InetAddress sIP = InetAddress.getByName(ipStorage);
+							InetAddress cIP = InetAddress.getByName(ipServer);
+
+							Socket s = new Socket(sIP, sPort, cIP, cPort);
+
+							stdis = new DataInputStream(s.getInputStream());
+							stdos = new DataOutputStream(s.getOutputStream());
+
+							System.out.println("writing req to storage: " + stdos.toString());
 							stdos.write(message);
 						}
 					}
@@ -266,6 +273,9 @@ class ClientHandler extends Thread {
 				// + new String(received, StandardCharsets.UTF_8));
 
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -280,23 +290,23 @@ class ClientHandler extends Thread {
 //		}
 	}// Fim do metodo run
 
-	//Qual storage tem espaço?
+	// Qual storage tem espaço?
 	public String[] escolhaStorageUpload() {
 		// TODO: implementar escolha
-		String ipStorage = "127.0.0.1";
-		String portStorage = "33336";
+		String ipStorage = "localhost";
+		String portStorage = "33337";
 
 		String[] resultado = new String[2];
 		resultado[0] = ipStorage;
 		resultado[1] = portStorage;
 		return resultado;
 	}
-	
-	//Qual storage tem o arquivo? Envie a REQUISICAO para ele
+
+	// Qual storage tem o arquivo? Envie a REQUISICAO para ele
 	public String[] escolhaStorageDownload() {
 		// TODO: implementar escolha
-		String ipStorage = "127.0.0.1";
-		String portStorage = "33336";
+		String ipStorage = "localhost";
+		String portStorage = "33337";
 
 		String[] resultado = new String[2];
 		resultado[0] = ipStorage;
@@ -378,6 +388,7 @@ class StorageHandler extends Thread {
 
 	@Override
 	public void run() {
+		System.out.println("executando run da thread StorageHandler");
 		while (true) {
 			try {
 
@@ -411,6 +422,7 @@ class StorageHandler extends Thread {
 
 					Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 					byte[] message = m.getMessage();
+					System.out.println("writing to cliente: " + dos.toString());
 					dos.write(message);
 				}
 

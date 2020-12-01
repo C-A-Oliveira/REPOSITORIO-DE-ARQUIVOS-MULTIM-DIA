@@ -229,6 +229,7 @@ class ServerHandler extends Thread {
 	//Cria o arquivo
 	public static void writeArq(byte[] arq, String _nomeArq) {
 		System.out.println("CLIENT - Arquivo criado.");
+		//TODO: alterar path
 		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(arq);
 		} catch (FileNotFoundException e) {

@@ -204,7 +204,11 @@ class ServerHandler extends Thread {
 					writeArq(body, nomeArq);
 				}
 
-			} catch (IOException e) {
+			}catch (SocketException se) {
+				se.printStackTrace();
+				break;
+			}
+			catch (IOException e) {
 				e.printStackTrace();
 			}
 		}

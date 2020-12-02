@@ -1,6 +1,7 @@
 package server;
 
 import java.io.*;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.concurrent.Semaphore;
@@ -44,7 +45,8 @@ class ServerImplementation {
 			Socket socketSt = null;
 
 			try {
-				// socket object to receive incoming client requests
+				
+				//TODO: FIX!!!!!!!!!!!!! -  Socket do cliente esta bloqueando a conexao do storage
 				socketC = ssc.accept();
 				socketSt = sst.accept();
 
@@ -203,7 +205,12 @@ class ServerImplementation {
 						}
 					}
 
-				} catch (IOException e) {
+				} 
+				catch(SocketException se) {
+					se.printStackTrace();
+					break;
+				}
+				catch (IOException e) {
 					e.printStackTrace();
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -300,7 +307,12 @@ class ServerImplementation {
 					// "
 					// + new String(received, StandardCharsets.UTF_8));
 
-				} catch (IOException e) {
+				} 
+				catch(SocketException se) {
+					se.printStackTrace();
+					break;
+				}
+				catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -365,11 +377,9 @@ class ServerImplementation {
 		if (socketAddress instanceof InetSocketAddress) {
 		    InetAddress inetAddress = ((InetSocketAddress)socketAddress).getAddress();
 		    if (inetAddress instanceof Inet4Address) {
-		        System.out.println("IPv4: " + inetAddress);
 		    	return inetAddress.toString().substring(1);
 		    }
 		    else if (inetAddress instanceof Inet6Address) {
-		        System.out.println("IPv6: " + inetAddress);
 		        return inetAddress.toString().substring(1);
 		    }
 		    else {

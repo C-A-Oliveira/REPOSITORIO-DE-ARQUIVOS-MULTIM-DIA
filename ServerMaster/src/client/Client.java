@@ -9,13 +9,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Scanner;
 
 import server.Mensagem;
 
 // Client class 
 public class Client {
-	private static long id = 4; //TODO: como passar um id diferente?
+	private static long id = 4; // TODO: como passar um id diferente?
 
 	public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
@@ -47,7 +48,7 @@ public class Client {
 			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
 					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
 			t.setName(name);
-			//System.out.println("Iniciando Thread para recebimento de arquivos");
+			// System.out.println("Iniciando Thread para recebimento de arquivos");
 			t.start();
 
 			boolean loop = true;
@@ -58,7 +59,7 @@ public class Client {
 				System.out.println("Digite 'download' para baixar um arquivo.");
 				System.out.println("Digite 'sair' para sair.");
 				String opcao = scn.nextLine();
-				byte modo = (byte)0x00;
+				byte modo = (byte) 0x00;
 				byte[] bytes = null;
 				String nomeArq = null;
 				switch (opcao) {
@@ -86,7 +87,7 @@ public class Client {
 
 				if (opcao != "closed") {
 					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
-					
+
 					byte[] message = m.getMessage();
 					dos.write(message);
 				}
@@ -99,16 +100,16 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-	
-	//============ METODOS UTILITARIOS =====================
-	
-	//Retorna os bytes[] de um long
+
+	// ============ METODOS UTILITARIOS =====================
+
+	// Retorna os bytes[] de um long
 	public static byte[] longToBytes(long x) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 		buffer.putLong(x);
 		return buffer.array();
 	}
-	
+
 	// Retorna os bytes[] de um int
 	public static byte[] intToBytes(int i) {
 		byte[] result = new byte[4];
@@ -120,8 +121,8 @@ public class Client {
 
 		return result;
 	}
-	
-	//File -> byte[]
+
+	// File -> byte[]
 	public static byte[] readContentIntoByteArray(File file) {
 		FileInputStream fileInputStream = null;
 		byte[] bFile = new byte[(int) file.length()];
@@ -140,8 +141,8 @@ public class Client {
 		}
 		return bFile;
 	}
-	
-	//Retorna os bytes[] do arquivo especificado
+
+	// Retorna os bytes[] do arquivo especificado
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
 
@@ -159,7 +160,7 @@ class ServerHandler extends Thread {
 	final DataOutputStream dos;
 	final Socket s;
 
-	//Constantes do cabecalho (modo)
+	// Constantes do cabecalho (modo)
 	public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
@@ -194,11 +195,11 @@ class ServerHandler extends Thread {
 
 				Mensagem msg = new Mensagem(received);
 				byte mode = msg.getHeader().getMode();
-				//byte[] bUser = msg.getHeader().getBUser();
+				// byte[] bUser = msg.getHeader().getBUser();
 				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
 				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
-				
+
 				if (mode == RECEBE_ARQ) {
 					writeArq(body, nomeArq);
 				}
@@ -209,10 +210,10 @@ class ServerHandler extends Thread {
 		}
 	}
 
-	//Cria o arquivo
+	// Cria o arquivo
 	public static void writeArq(byte[] arq, String _nomeArq) {
 		System.out.println("CLIENT - Arquivo criado.");
-		
+
 		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(arq);
 		} catch (FileNotFoundException e) {
@@ -220,9 +221,9 @@ class ServerHandler extends Thread {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
-	
+
 	public static byte[] intToBytes(int i) {
 		byte[] result = new byte[4];
 

@@ -22,6 +22,7 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
+	//TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui mÃ©todos sincronizados
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
@@ -211,7 +212,7 @@ class ServerImplementation {
 
 		}// Fim do metodo run
 
-		// Qual storage tem espaço?
+		// Qual storage tem espaï¿½o?
 		public String[] escolhaStorageUpload() {
 			// TODO: implementar escolha
 			String ipStorage = "localhost";

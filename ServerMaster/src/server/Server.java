@@ -22,7 +22,8 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
-	//TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui métodos sincronizados
+	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui métodos
+	// sincronizados
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
@@ -67,8 +68,8 @@ class ServerImplementation {
 				DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
 				DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
 				
-				System.out.println("> "+String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "." + String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]));
-				mapDOSStorage.put(String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "." + String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]), dosSt);
+				
+				mapDOSStorage.put( getIpSocket(socketSt), dosSt);
 
 				System.out.println("Assigning new thread client " + nameC);
 				System.out.println("Assigning new thread storage " + nameSt);
@@ -190,14 +191,14 @@ class ServerImplementation {
 								// Escolha do storage
 								String[] splitEscolha = escolhaStorageDownload();
 								String ipStorage = splitEscolha[0];
-								//String portaStorage = splitEscolha[1];
-								
+								// String portaStorage = splitEscolha[1];
+
 								DataOutputStream stdos = null;
 								stdos = mapDOSStorage.get(ipStorage);
 
 								System.out.println("writing req to storage: " + stdos.toString());
 								stdos.write(message);
-								
+
 							}
 						}
 					}
@@ -212,10 +213,10 @@ class ServerImplementation {
 
 		}// Fim do metodo run
 
-		// Qual storage tem espa�o?
+		// Qual storage tem espaco?
 		public String[] escolhaStorageUpload() {
 			// TODO: implementar escolha
-			String ipStorage = "localhost";
+			String ipStorage = "192.168.15.6";
 			String portStorage = "33336";
 
 			String[] resultado = new String[2];
@@ -227,7 +228,7 @@ class ServerImplementation {
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
 		public String[] escolhaStorageDownload() {
 			// TODO: implementar escolha
-			String ipStorage = "127.0.0.1";
+			String ipStorage = "192.168.15.6";
 			String portStorage = "33336";
 
 			String[] resultado = new String[2];
@@ -308,8 +309,9 @@ class ServerImplementation {
 
 	}// Fim de storage handler
 
-	//======================== METODOS de ServerImplementation =============================
-	
+	// ======================== METODOS de ServerImplementation
+	// =============================
+
 	public boolean userTemAcesso(long user, String arg) {
 		// TODO: Semaphore?
 
@@ -354,6 +356,29 @@ class ServerImplementation {
 			System.out.println(decryptedText);
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static String getIpSocket(Socket socket) {
+		SocketAddress socketAddress = socket.getRemoteSocketAddress();
+		
+		if (socketAddress instanceof InetSocketAddress) {
+		    InetAddress inetAddress = ((InetSocketAddress)socketAddress).getAddress();
+		    if (inetAddress instanceof Inet4Address) {
+		        System.out.println("IPv4: " + inetAddress);
+		    	return inetAddress.toString().substring(1);
+		    }
+		    else if (inetAddress instanceof Inet6Address) {
+		        System.out.println("IPv6: " + inetAddress);
+		        return inetAddress.toString().substring(1);
+		    }
+		    else {
+		        System.err.println("Not an IP address.");
+		    	return null;
+		    }
+		} else {
+		    System.err.println("Not an internet protocol socket.");
+		    return null;
 		}
 	}
 

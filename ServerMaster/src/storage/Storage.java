@@ -107,7 +107,7 @@ public class Storage {
 				e.printStackTrace();
 			}
 		}
-		//s.close();
+		s.close();
 		//ss.close();
 	}
 

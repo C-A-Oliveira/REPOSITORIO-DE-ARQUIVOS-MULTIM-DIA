@@ -1,8 +1,6 @@
 package server;
 
 import java.io.*;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.concurrent.Semaphore;
 
@@ -23,82 +21,132 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
-	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui métodos
+	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
 	// sincronizados
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
+	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
 		this.main(args);
 	}
 
 	public void main(String[] args) throws IOException {
-		// testAESEncryptionAndDecryption();
-
-		// server is listening on port 33333 and 33335
-		ServerSocket ssc = new ServerSocket(33333);
-		ServerSocket sst = new ServerSocket(33335);
-
-		// running infinite loop for getting client request
-		boolean loop = true;
-		while (loop) {
-			Socket socketC = null;
-			Socket socketSt = null;
-
-			try {
-				
-				//TODO: FIX!!!!!!!!!!!!! -  Socket do cliente esta bloqueando a conexao do storage. Criar threads para ficar escutando
-				socketC = ssc.accept();
-				socketSt = sst.accept();
-
-				byte[] ccADDR = socketC.getInetAddress().getAddress();
-				byte[] stADDR = socketSt.getInetAddress().getAddress();
-				String nameC = String.valueOf(ccADDR[0]) + "." + String.valueOf(ccADDR[1]) + "."
-						+ String.valueOf(ccADDR[2]) + "." + String.valueOf(ccADDR[3]) + ":" + socketC.getPort();
-				String nameSt = String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "."
-						+ String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]) + ":" + socketSt.getPort();
-				if (socketC != null) {
-					System.out.println("A new client is connected : " + socketC);
-				}
-				if (socketSt != null) {
-					System.out.println("A new storage is connected : " + socketSt);
-				}
-
-				// obtaining input and out streams
-				DataInputStream disC = new DataInputStream(socketC.getInputStream());
-				DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());// TODO: remover
-
-				DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
-				DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
-				
-				//TODO: Alterar getIpSocket para retornar IP *e* porta
-				mapDOSStorage.put( getIpSocket(socketSt), dosSt);
-
-				System.out.println("Assigning new thread client " + nameC);
-				System.out.println("Assigning new thread storage " + nameSt);
-				Thread tC = this.new ClientHandler(disC, InetAddress.getLocalHost().toString(), "33333");
-				// TODO: Corrigir, cliente dos deve ser definido dentro da thread, em teoria
-				Thread tSt = new StorageHandler(disSt, dosC);
-
-				// create a new thread object
-				tC.setName(nameC);
-				tC.start();
-
-				tSt.setName(nameSt);
-				tSt.start();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("socket Closed");
-				socketC.close();
-				socketSt.close();
-				break; // TESTE
-			}
-		}
-		ssc.close();
-		sst.close();
+		ClientListener clientListener = new ClientListener();
+		StorageListener storageListener = new StorageListener();
+		
+		clientListener.start();
+		storageListener.start();
+		
 	}
 
-	// ClientHandler class
+	class ClientListener extends Thread {
+		public ClientListener() {
+
+		}
+
+		@Override
+		public void run() {
+			try {
+				// testAESEncryptionAndDecryption();
+
+				// server is listening on port 33333 and 33335
+				ServerSocket ssc = new ServerSocket(33333);
+
+				// running infinite loop for getting client request
+				boolean loop = true;
+				while (loop) {
+					Socket socketC = null;
+
+					try {
+
+						socketC = ssc.accept();
+
+						byte[] ccADDR = socketC.getInetAddress().getAddress();
+
+						String nameC = String.valueOf(ccADDR[0]) + "." + String.valueOf(ccADDR[1]) + "."
+								+ String.valueOf(ccADDR[2]) + "." + String.valueOf(ccADDR[3]) + ":" + socketC.getPort();
+
+						if (socketC != null) {
+							System.out.println("A new client is connected : " + socketC);
+						}
+
+						// obtaining input and out streams
+						DataInputStream disC = new DataInputStream(socketC.getInputStream());
+						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());// TODO: remover
+
+						mapDOSClient.put(getIpSocket(socketC), dosC);
+
+						System.out.println("Assigning new thread client " + nameC);
+
+						Thread tC = new ClientHandler(disC, InetAddress.getLocalHost().toString(), "33333");
+
+						// create a new thread object
+						tC.setName(nameC);
+						tC.start();
+
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("socket Closed");
+						socketC.close();
+						break; // TESTE
+					}
+				}
+				//ssc.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	class StorageListener extends Thread {
+
+		public StorageListener() {
+		}
+
+		@Override
+		public void run() {
+			try {
+				ServerSocket sst = new ServerSocket(33335);
+
+				boolean loop = true;
+				while (loop) {
+					Socket socketSt = null;
+					try {
+						socketSt = sst.accept();
+						byte[] stADDR = socketSt.getInetAddress().getAddress();
+						String nameSt = String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "."
+								+ String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]) + ":"
+								+ socketSt.getPort();
+						if (socketSt != null) {
+							System.out.println("A new storage is connected : " + socketSt);
+						}
+
+						DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
+						DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
+
+						// TODO: Alterar getIpSocket para retornar IP *e* porta
+						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
+
+						System.out.println("Assigning new thread storage " + nameSt);
+						Thread tSt = new StorageHandler(disSt);
+
+						tSt.setName(nameSt);
+						tSt.start();
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("socket Closed");
+						socketSt.close();
+						break; // TESTE
+					}
+				}
+			} catch (IOException io) {
+				io.printStackTrace();
+			}
+		}
+	}
+
+// ClientHandler class
 	class ClientHandler extends Thread {
 		final DataInputStream dis;
 		Semaphore semUser;
@@ -122,7 +170,6 @@ class ServerImplementation {
 			System.out.println("executando run da thread ClientHandler");
 			while (true) {
 				try {
-
 					// READING
 					int lenght = dis.readInt();
 					byte[] received = new byte[lenght];
@@ -153,7 +200,8 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
-						//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
+						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
+						// unico string com ip e porta
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
@@ -176,8 +224,6 @@ class ServerImplementation {
 						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 						byte[] message = m.getMessage();
 
-						// TESTE
-						// System.out.println(">h = " + m.getHeader().getHeader().length);
 						m.showMessage();
 
 						System.out.println("writing arq to storage: " + stdos.toString());
@@ -205,24 +251,18 @@ class ServerImplementation {
 							}
 						}
 					}
-
-				} 
-				catch(SocketException se) {
+				} catch (SocketException se) {
 					se.printStackTrace();
 					break;
-				}
-				catch (IOException e) {
-					e.printStackTrace();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
-			}
-
+			} // Fim do while
 		}// Fim do metodo run
 
-		// Qual storage tem espaco?
-		//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
+		
+		// Qual storage deve receber o arquivo?
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 		public String[] escolhaStorageUpload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -235,7 +275,7 @@ class ServerImplementation {
 		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
-		//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 		public String[] escolhaStorageDownload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -249,19 +289,17 @@ class ServerImplementation {
 
 	}
 
-	// StorageHandler class
+// StorageHandler class
 	class StorageHandler extends Thread {
 		final DataInputStream dis;
-		final DataOutputStream dos;
 		// final Socket s;
 		Semaphore semUser;
 		Semaphore semArq;
 
 		// Constructor
-		public StorageHandler(DataInputStream dis, DataOutputStream dos) {
+		public StorageHandler(DataInputStream dis) {
 			// this.s = s;
 			this.dis = dis;
-			this.dos = dos;
 			semUser = new Semaphore(1);
 			semArq = new Semaphore(1);
 		}
@@ -302,6 +340,12 @@ class ServerImplementation {
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 						byte[] message = m.getMessage();
+						
+						String[] splitEscolha = escolhaClientDownload();
+						String ipClient = splitEscolha[0];
+						String portClient = splitEscolha[1]; 
+						DataOutputStream dos = mapDOSStorage.get(ipClient);
+						
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
 					}
@@ -310,22 +354,33 @@ class ServerImplementation {
 					// "
 					// + new String(received, StandardCharsets.UTF_8));
 
-				} 
-				catch(SocketException se) {
+				} catch (SocketException se) {
 					se.printStackTrace();
 					break;
-				}
-				catch (IOException e) {
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 
 		}// Fim do metodo run
+		
+		//Qual cliente deve receber o arquivo?
+		// TODO: alterar escolhaClientDownload para retornar um unico string com ip e porta?
+		public String[] escolhaClientDownload() {
+			
+			//TODO: IMPLEMENTAR
+			String ipClient = "192.168.15.2";
+			String portClient = "33336";
+			
+			String[] resultado = new String[2];
+			resultado[0] = ipClient;
+			resultado[1] = portClient;
+			return resultado;
+		}
 
 	}// Fim de storage handler
 
-	// ======================== METODOS de ServerImplementation
-	// =============================
+	// ======================== METODOS de ServerImplementation=============================
 
 	public boolean userTemAcesso(long user, String arg) {
 		// TODO: Semaphore?
@@ -374,25 +429,23 @@ class ServerImplementation {
 		}
 	}
 
-	//TODO: alterar para retornar ip *e* porta
+	// TODO: alterar para retornar ip *e* porta
 	public static String getIpSocket(Socket socket) {
 		SocketAddress socketAddress = socket.getRemoteSocketAddress();
-		
+
 		if (socketAddress instanceof InetSocketAddress) {
-		    InetAddress inetAddress = ((InetSocketAddress)socketAddress).getAddress();
-		    if (inetAddress instanceof Inet4Address) {
-		    	return inetAddress.toString().substring(1);
-		    }
-		    else if (inetAddress instanceof Inet6Address) {
-		        return inetAddress.toString().substring(1);
-		    }
-		    else {
-		        System.err.println("Not an IP address.");
-		    	return null;
-		    }
+			InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
+			if (inetAddress instanceof Inet4Address) {
+				return inetAddress.toString().substring(1);
+			} else if (inetAddress instanceof Inet6Address) {
+				return inetAddress.toString().substring(1);
+			} else {
+				System.err.println("Not an IP address.");
+				return null;
+			}
 		} else {
-		    System.err.println("Not an internet protocol socket.");
-		    return null;
+			System.err.println("Not an internet protocol socket.");
+			return null;
 		}
 	}
 

@@ -46,7 +46,7 @@ class ServerImplementation {
 
 			try {
 				
-				//TODO: FIX!!!!!!!!!!!!! -  Socket do cliente esta bloqueando a conexao do storage
+				//TODO: FIX!!!!!!!!!!!!! -  Socket do cliente esta bloqueando a conexao do storage. Criar threads para ficar escutando
 				socketC = ssc.accept();
 				socketSt = sst.accept();
 
@@ -70,7 +70,7 @@ class ServerImplementation {
 				DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
 				DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
 				
-				
+				//TODO: Alterar getIpSocket para retornar IP *e* porta
 				mapDOSStorage.put( getIpSocket(socketSt), dosSt);
 
 				System.out.println("Assigning new thread client " + nameC);
@@ -153,6 +153,7 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
+						//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
@@ -221,6 +222,7 @@ class ServerImplementation {
 		}// Fim do metodo run
 
 		// Qual storage tem espaco?
+		//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
 		public String[] escolhaStorageUpload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -233,6 +235,7 @@ class ServerImplementation {
 		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
+		//TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
 		public String[] escolhaStorageDownload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -371,6 +374,7 @@ class ServerImplementation {
 		}
 	}
 
+	//TODO: alterar para retornar ip *e* porta
 	public static String getIpSocket(Socket socket) {
 		SocketAddress socketAddress = socket.getRemoteSocketAddress();
 		

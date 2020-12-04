@@ -21,10 +21,12 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
-	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
-	// sincronizados
+	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos sincronizados
+	//Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
+	
+	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
 		this.main(args);
@@ -77,8 +79,9 @@ class ServerImplementation {
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
 						System.out.println("Assigning new thread client " + nameC);
-
-						Thread tC = new ClientHandler(disC, InetAddress.getLocalHost().toString(), "33333");
+						
+						String ipClient = socketC.getInetAddress().toString().substring(1);
+						Thread tC = new ClientHandler(disC, ipClient);
 
 						// create a new thread object
 						tC.setName(nameC);
@@ -153,16 +156,19 @@ class ServerImplementation {
 		Semaphore semArq;
 		Semaphore semPort; // Desnecessario?
 
-		final String ipServer;
-		final String portaServer;
+//		final String ipServer;
+//		final String portaServer;
+		
+		public String ipClient;
 
 		// Constructor
-		public ClientHandler(DataInputStream dis, String ipServer, String portaServer) {
+		public ClientHandler(DataInputStream dis, String ipClient) {
 			this.dis = dis;
 			semUser = new Semaphore(1);
 			semArq = new Semaphore(1);
-			this.ipServer = ipServer;
-			this.portaServer = portaServer;
+			this.ipClient = ipClient;
+//			this.ipServer = ipServer;
+//			this.portaServer = portaServer;
 		}
 
 		@Override
@@ -205,21 +211,9 @@ class ServerImplementation {
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
-
-						DataInputStream stdis = null;
-						DataOutputStream stdos = null;
-
-						int sPort = Integer.parseInt(portaStorage);
-						int cPort = Integer.parseInt(portaServer);
-
-						InetAddress sIP;
-						sIP = InetAddress.getByName(ipStorage);
-						InetAddress cIP = InetAddress.getByName(ipServer);
-
-						Socket s = new Socket(sIP, sPort, cIP, cPort);
-
-						stdis = new DataInputStream(s.getInputStream());
-						stdos = new DataOutputStream(s.getOutputStream());
+						
+						DataOutputStream stdos = null;						
+						stdos = mapDOSStorage.get(ipStorage);
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 						byte[] message = m.getMessage();
@@ -244,7 +238,9 @@ class ServerImplementation {
 
 								DataOutputStream stdos = null;
 								stdos = mapDOSStorage.get(ipStorage);
-
+								
+								mapClientArq.put(m.getHeader().getNome() , this.ipClient);
+								
 								System.out.println("writing req to storage: " + stdos.toString());
 								stdos.write(message);
 
@@ -341,10 +337,12 @@ class ServerImplementation {
 						Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 						byte[] message = m.getMessage();
 						
-						String[] splitEscolha = escolhaClientDownload();
-						String ipClient = splitEscolha[0];
-						String portClient = splitEscolha[1]; 
-						DataOutputStream dos = mapDOSStorage.get(ipClient);
+						//String[] splitEscolha = escolhaClientDownload();
+						//TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
+						//TODO: adicionar ip ao cabecalho
+						String ipClient = mapClientArq.get(m.getHeader().getNome()) ;
+						//String portClient = splitEscolha[1]; 
+						DataOutputStream dos = mapDOSClient.get(ipClient);
 						
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);

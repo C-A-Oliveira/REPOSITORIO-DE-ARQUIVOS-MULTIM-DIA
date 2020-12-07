@@ -48,7 +48,7 @@ public class Mensagem {
 		System.arraycopy(_msg, Header.INDEX_TAM_NOME, bTamNome, 0, bTamNome.length);
 		int tamNome = bytesToInt(bTamNome);
 		
-		//  Tam / Modo / User     / Tamnome / Nomearq
+		//  Tam / Modo / User / Tamnome / Nomearq
 		int sizeHeader = Integer.BYTES + 1 + Long.BYTES + Integer.BYTES + tamNome;
 		int sizeBody = _msg.length - sizeHeader;
 		byte[][] splitMsg = new byte[sizeHeader][sizeBody];

@@ -369,17 +369,6 @@ class ServerImplementation {
 		protected void addPermissaoClient(String arq , long user){
 			//TODO: SEMAFORO?
 			
-			
-			//Consideracao: Esse codigo tem propenção a sofrer com injecao. Acredito que nao de tempo pra corrigir isso, mas eh bom saber mesmo assim.
-			// Exemplo: stringAleatorio;0'\n'arquivoExistenteQueDesejaRoubar
-			//  Em teoria essa linha extra gerada nunca seria alcançada, porem caso fosse isso permitiria o acesso
-			// Exemplo2: stringAleatorio;0'\n'arquivoQueEuNaoConhecoMasExisteAPossibilidadeDeExistirNoFuturo
-			//  Nessa situacao um bot poderia spammar o Server com nomes aleatorios (ou gerados por uma IA) para roubar arquivos que ainda não existem no sistema no futuro.
-			//  Outro exemplo pra mesma situacao, um arquivo com nome: 
-			//   teste.txt;0'\n'senhas.txt;444'\n'senhas.xlsx;444'\n'foto.png
-			//Talvez isso deixe depois ser um problema depois de adicionado o sistema de diretorio ou o sistema de arquivo
-			
-			
 			File fileArq = new File(nomeArqUser);
 			try {
 				FileWriter fw = new FileWriter(fileArq);

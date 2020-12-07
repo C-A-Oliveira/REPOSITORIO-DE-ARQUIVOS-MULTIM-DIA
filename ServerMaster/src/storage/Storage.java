@@ -19,6 +19,19 @@ public class Storage {
 
 	public static void main(String[] args) throws IOException {
 
+		//Arquivo de configuracao (argumentos)
+		BufferedReader bfr = new BufferedReader( new FileReader("storageConf.txt"));
+		String line = bfr.readLine();
+		bfr.close();
+		line = line.replaceAll("\\s+", "");//Remove todos os espacos
+		String[] split = new String[4];
+		split = line.split(",");
+		args[0] = split[0];
+		args[1] = split[1];
+		args[2] = split[2];
+		args[3] = split[3];
+		
+		
 		// running infinite loop for getting client request
 		int sPort = Integer.parseInt(args[1]);
 		int cPort = Integer.parseInt(args[3]);

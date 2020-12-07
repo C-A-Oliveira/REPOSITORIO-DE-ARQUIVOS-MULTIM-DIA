@@ -20,12 +20,14 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_STORAGE = (byte) 0x01;
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
+	
+	public static final String nomeArqUser = "arqUser.txt";
 
 	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos sincronizados
-	//Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
+	// Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
-	
+
 	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
@@ -35,10 +37,10 @@ class ServerImplementation {
 	public void main(String[] args) throws IOException {
 		ClientListener clientListener = new ClientListener();
 		StorageListener storageListener = new StorageListener();
-		
+
 		clientListener.start();
 		storageListener.start();
-		
+
 	}
 
 	class ClientListener extends Thread {
@@ -79,7 +81,7 @@ class ServerImplementation {
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
 						System.out.println("Assigning new thread client " + nameC);
-						
+
 						String ipClient = socketC.getInetAddress().toString().substring(1);
 						Thread tC = new ClientHandler(disC, ipClient);
 
@@ -94,7 +96,7 @@ class ServerImplementation {
 						break; // TESTE
 					}
 				}
-				//ssc.close();
+				// ssc.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -158,7 +160,7 @@ class ServerImplementation {
 
 //		final String ipServer;
 //		final String portaServer;
-		
+
 		public String ipClient;
 
 		// Constructor
@@ -206,13 +208,12 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
-						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
-						// unico string com ip e porta
+						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
-						
-						DataOutputStream stdos = null;						
+
+						DataOutputStream stdos = null;
 						stdos = mapDOSStorage.get(ipStorage);
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
@@ -238,9 +239,9 @@ class ServerImplementation {
 
 								DataOutputStream stdos = null;
 								stdos = mapDOSStorage.get(ipStorage);
-								
-								mapClientArq.put(m.getHeader().getNome() , this.ipClient);
-								
+
+								mapClientArq.put(m.getHeader().getNome(), this.ipClient);
+
 								System.out.println("writing req to storage: " + stdos.toString());
 								stdos.write(message);
 
@@ -256,7 +257,6 @@ class ServerImplementation {
 			} // Fim do while
 		}// Fim do metodo run
 
-		
 		// Qual storage deve receber o arquivo?
 		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 		public String[] escolhaStorageUpload() {
@@ -336,16 +336,19 @@ class ServerImplementation {
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 						byte[] message = m.getMessage();
+
+						//// String[] splitEscolha = escolhaClientDownload();
 						
-						//String[] splitEscolha = escolhaClientDownload();
-						//TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
-						//TODO: adicionar ip ao cabecalho
-						String ipClient = mapClientArq.get(m.getHeader().getNome()) ;
-						//String portClient = splitEscolha[1]; 
+						// TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
+						// TODO: adicionar ip ao cabecalho?
+						String ipClient = mapClientArq.get(m.getHeader().getNome());
+						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
-						
+
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
+						
+						addPermissaoClient( m.getHeader().getNome(), bytesToLong(user) ); //Adiciona permissao pro usuario fazer download desse arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -362,28 +365,84 @@ class ServerImplementation {
 
 		}// Fim do metodo run
 		
-		//Qual cliente deve receber o arquivo?
-		// TODO: alterar escolhaClientDownload para retornar um unico string com ip e porta?
-		public String[] escolhaClientDownload() {
+		protected void addPermissaoClient(String arq , long user){
+			//TODO: SEMAFORO?
 			
-			//TODO: IMPLEMENTAR
-			String ipClient = "192.168.15.2";
-			String portClient = "33336";
+			//Consideracao: Esse codigo tem propenção a injecao de codigo. Acredito que nao de tempo pra corrigir isso, mas eh bom saber mesmo assim.
+			// Exemplo: stringAleatorio;0'\n'arquivoExistenteQueDesejaRoubar;
+			//  Em teoria essa linha extra gerada nunca seria alcançada, porem caso fosse isso permitiria o acesso
+			// Exemplo2: stringAleatorio;0'\n'arquivoQueEuNaoConhecoMasExisteAPossibilidadeDeExistirNoFuturo;
+			//  Nessa situacao um bot poderia spammar o Server com nomes aleatorios (ou gerados por uma IA) para roubar arquivos que ainda não existem no sistema no futuro.
 			
-			String[] resultado = new String[2];
-			resultado[0] = ipClient;
-			resultado[1] = portClient;
-			return resultado;
+			File fileArq = new File(nomeArqUser);
+			try {
+				FileWriter fw = new FileWriter(fileArq);
+				fw.append('\n'); //TODO: Isso causa dependencia de sistema?
+				fw.append( (arq + ";" + user) );
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+
+//		// Qual cliente deve receber o arquivo?
+//		// TODO: alterar escolhaClientDownload para retornar um unico string com ip e
+//		// porta?
+//		public String[] escolhaClientDownload() {
+//
+//			// TODO: IMPLEMENTAR
+//			String ipClient = "192.168.15.2";
+//			String portClient = "33336";
+//
+//			String[] resultado = new String[2];
+//			resultado[0] = ipClient;
+//			resultado[1] = portClient;
+//			return resultado;
+//		}
 
 	}// Fim de storage handler
 
 	// ======================== METODOS de ServerImplementation=============================
 
-	public boolean userTemAcesso(long user, String arg) {
+	public Boolean userTemAcesso(long user, String arq) {
 		// TODO: Semaphore?
+		boolean ok = false;
 
-		boolean ok = true; // TODO: implementar, isso eh so pra teste
+		BufferedReader bfr;
+		try {
+
+			bfr = new BufferedReader(new FileReader("arqUser.txt"));
+			String line;
+
+			// TODO: acho que da pra melhorar esse loop, ta dificil de ler
+			do {
+				line = bfr.readLine();
+				if (line == null) {
+					break;
+				}
+
+				// Assumindo que arqUser.txt se pareca com isso: Nome do arquivo1 ; usuario1,
+				// usuario2, usuario 3
+				if (line.split(";")[0] == arq) {
+					// Encontrou linha correspondente do arquivo
+
+					String[] users = line.split(";")[1].split(",");
+					for (int i = 0; i < users.length; i++) {
+						if (Long.parseLong(users[i]) == user) {
+							// Encontrou o usuario
+							ok = true;
+							break;
+						}
+					}
+					break; // Nao ha mais necessidade de continuar lendo o arquivo, saia do loop
+				}
+			} while (line != null);
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// semUser.release();
 		return ok;

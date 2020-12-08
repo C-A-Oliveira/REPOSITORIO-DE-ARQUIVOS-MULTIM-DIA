@@ -30,7 +30,7 @@ public class Client {
 			BufferedReader bfr = new BufferedReader( new FileReader("clientConf.txt"));
 			String line = bfr.readLine();
 			bfr.close();
-			line = line.replaceAll("\\s+", "");//Remove todos os espacos
+			line = line.replaceAll(" ", "");//Remove todos os espacos
 			String[] split = new String[4];
 			split = line.split(",");
 			argumentos[0] = split[0];

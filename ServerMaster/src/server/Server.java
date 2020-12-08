@@ -20,8 +20,12 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_STORAGE = (byte) 0x01;
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
-	
+
+	public static final String nomeArqPermissao = "arqPermissao.txt";
+	public static final Semaphore semaforoPermissao = new Semaphore(1);
+
 	public static final String nomeArqUser = "arqUser.txt";
+	public static final Semaphore semaforoUser = new Semaphore(1);
 
 	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos sincronizados
 	// Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
@@ -40,7 +44,6 @@ class ServerImplementation {
 
 		clientListener.start();
 		storageListener.start();
-
 	}
 
 	class ClientListener extends Thread {
@@ -80,10 +83,10 @@ class ServerImplementation {
 
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
-						System.out.println("Assigning new thread client " + nameC);
+						// System.out.println("Assigning new thread client " + nameC);
 
 						String ipClient = socketC.getInetAddress().toString().substring(1);
-						Thread tC = new ClientHandler(disC, ipClient);
+						Thread tC = new ClientHandler(disC, ipClient, socketC);
 
 						// create a new thread object
 						tC.setName(nameC);
@@ -91,12 +94,11 @@ class ServerImplementation {
 
 					} catch (Exception e) {
 						e.printStackTrace();
-						System.out.println("socket Closed");
+						System.out.println("Socket Closed");
 						socketC.close();
-						break; // TESTE
 					}
 				}
-				// ssc.close();
+				ssc.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -133,18 +135,18 @@ class ServerImplementation {
 						// TODO: Alterar getIpSocket para retornar IP *e* porta
 						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
 
-						System.out.println("Assigning new thread storage " + nameSt);
-						Thread tSt = new StorageHandler(disSt);
+						// System.out.println("Assigning new thread storage " + nameSt);
+						Thread tSt = new StorageHandler(disSt, socketSt);
 
 						tSt.setName(nameSt);
 						tSt.start();
 					} catch (Exception e) {
 						e.printStackTrace();
-						System.out.println("socket Closed");
+						System.out.println("Socket Closed");
 						socketSt.close();
-						break; // TESTE
 					}
 				}
+				sst.close();
 			} catch (IOException io) {
 				io.printStackTrace();
 			}
@@ -154,9 +156,7 @@ class ServerImplementation {
 // ClientHandler class
 	class ClientHandler extends Thread {
 		final DataInputStream dis;
-		Semaphore semUser;
-		Semaphore semArq;
-		Semaphore semPort; // Desnecessario?
+		final Socket s;
 
 //		final String ipServer;
 //		final String portaServer;
@@ -164,19 +164,19 @@ class ServerImplementation {
 		public String ipClient;
 
 		// Constructor
-		public ClientHandler(DataInputStream dis, String ipClient) {
+		public ClientHandler(DataInputStream dis, String ipClient, Socket _s) {
 			this.dis = dis;
-			semUser = new Semaphore(1);
-			semArq = new Semaphore(1);
 			this.ipClient = ipClient;
+			this.s = _s;
 //			this.ipServer = ipServer;
 //			this.portaServer = portaServer;
 		}
 
 		@Override
 		public void run() {
-			System.out.println("executando run da thread ClientHandler");
-			while (true) {
+			// System.out.println("executando run da thread ClientHandler");
+			boolean loop = true;
+			while (loop) {
 				try {
 					// READING
 					int lenght = dis.readInt();
@@ -208,7 +208,8 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
-						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta
+						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
+						// unico string com ip e porta
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
@@ -250,7 +251,13 @@ class ServerImplementation {
 					}
 				} catch (SocketException se) {
 					se.printStackTrace();
-					break;
+					try {
+						this.s.close();
+						loop = false;
+						break;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -258,7 +265,8 @@ class ServerImplementation {
 		}// Fim do metodo run
 
 		// Qual storage deve receber o arquivo?
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
+		// unico string com ip e porta?
 		public String[] escolhaStorageUpload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -271,7 +279,8 @@ class ServerImplementation {
 		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
+		// unico string com ip e porta?
 		public String[] escolhaStorageDownload() {
 			// TODO: implementar escolha
 			String ipStorage = "192.168.15.6";
@@ -288,22 +297,20 @@ class ServerImplementation {
 // StorageHandler class
 	class StorageHandler extends Thread {
 		final DataInputStream dis;
-		// final Socket s;
-		Semaphore semUser;
-		Semaphore semArq;
+		final Socket s;
 
 		// Constructor
-		public StorageHandler(DataInputStream dis) {
+		public StorageHandler(DataInputStream dis, Socket socketSt) {
 			// this.s = s;
 			this.dis = dis;
-			semUser = new Semaphore(1);
-			semArq = new Semaphore(1);
+			this.s = socketSt;
 		}
 
 		@Override
 		public void run() {
 			System.out.println("executando run da thread StorageHandler");
-			while (true) {
+			boolean loop = true;
+			while (loop) {
 				try {
 
 					// READING
@@ -338,7 +345,7 @@ class ServerImplementation {
 						byte[] message = m.getMessage();
 
 						//// String[] splitEscolha = escolhaClientDownload();
-						
+
 						// TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
 						// TODO: adicionar ip ao cabecalho?
 						String ipClient = mapClientArq.get(m.getHeader().getNome());
@@ -347,8 +354,8 @@ class ServerImplementation {
 
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
-						
-						addPermissaoClient( m.getHeader().getNome(), bytesToLong(user) ); //Adiciona permissao pro usuario fazer download desse arquivo
+
+						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro usuario fazer download desse arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -357,28 +364,40 @@ class ServerImplementation {
 
 				} catch (SocketException se) {
 					se.printStackTrace();
-					break;
+					try {
+						this.s.close();
+						loop = false;
+						break;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 
 		}// Fim do metodo run
-		
-		//Adiciona uma nova linha no arquivo de permissoes
-		protected void addPermissaoClient(String arq , long user){
-			//TODO: SEMAFORO?
-			
-			File fileArq = new File(nomeArqUser);
-			try {
-				FileWriter fw = new FileWriter(fileArq);
-				fw.append('\n'); //TODO: Isso causa dependencia de sistema?
-				fw.append( (arq + ";" + user) );
-				fw.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+
+		// Adiciona uma nova linha no arquivo de permissoes
+		protected void addPermissaoClient(String arq, long user) {
+			//try {
+				//semaforoPermissao.acquire();
+
+				File fileArq = new File(nomeArqPermissao);
+				try {
+					FileWriter fw = new FileWriter(fileArq);
+					fw.append('\n'); // TODO: Isso causa dependencia de sistema?
+					fw.append((arq + ";" + user));
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+				//semaforoPermissao.release();
+			//}
+//			catch (InterruptedException e1) {
+//				e1.printStackTrace();
+//			}
 		}
 
 //		// Qual cliente deve receber o arquivo?
@@ -401,13 +420,12 @@ class ServerImplementation {
 	// ======================== METODOS de ServerImplementation=============================
 
 	public Boolean userTemAcesso(long user, String arq) {
-		// TODO: Semaphore?
 		boolean ok = false;
 
 		BufferedReader bfr;
 		try {
-
-			bfr = new BufferedReader(new FileReader("arqUser.txt"));
+			//semaforoPermissao.acquire();
+			bfr = new BufferedReader(new FileReader(nomeArqPermissao));
 			String line;
 
 			// TODO: acho que da pra melhorar esse loop, ta dificil de ler
@@ -417,8 +435,7 @@ class ServerImplementation {
 					break;
 				}
 
-				// Assumindo que arqUser.txt se pareca com isso: Nome do arquivo1 ; usuario1,
-				// usuario2, usuario 3
+				// Assumindo que arqPermissao.txt se pareca com isso: Nome do arquivo1 ; usuario1, usuario2, usuario 3
 				if (line.split(";")[0] == arq) {
 					// Encontrou linha correspondente do arquivo
 
@@ -433,13 +450,18 @@ class ServerImplementation {
 					break; // Nao ha mais necessidade de continuar lendo o arquivo, saia do loop
 				}
 			} while (line != null);
+			
+			//semaforoPermissao.release();
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
+//		catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 
-		// semUser.release();
 		return ok;
 	}
 
@@ -492,11 +514,11 @@ class ServerImplementation {
 			} else if (inetAddress instanceof Inet6Address) {
 				return inetAddress.toString().substring(1);
 			} else {
-				System.err.println("Not an IP address.");
+				System.err.println("Nao eh IP.");
 				return null;
 			}
 		} else {
-			System.err.println("Not an internet protocol socket.");
+			System.err.println("Nao eh um socket IP.");
 			return null;
 		}
 	}

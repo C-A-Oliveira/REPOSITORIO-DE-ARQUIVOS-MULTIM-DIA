@@ -18,26 +18,27 @@ public class Storage {
 	public static final byte RECEBE_REQ_SERVER = (byte) 0x05;
 
 	public static void main(String[] args) throws IOException {
-
+		String[] argumentos = new String[4];
 		//Arquivo de configuracao (argumentos)
 		BufferedReader bfr = new BufferedReader( new FileReader("storageConf.txt"));
 		String line = bfr.readLine();
 		bfr.close();
-		line = line.replaceAll("\\s+", "");//Remove todos os espacos
+		line = line.replaceAll(" ", "");//Remove todos os espacos
 		String[] split = new String[4];
 		split = line.split(",");
-		args[0] = split[0];
-		args[1] = split[1];
-		args[2] = split[2];
-		args[3] = split[3];
+		
+		argumentos[0] = split[0];
+		argumentos[1] = split[1];
+		argumentos[2] = split[2];
+		argumentos[3] = split[3];
 		
 		
 		// running infinite loop for getting client request
-		int sPort = Integer.parseInt(args[1]);
-		int cPort = Integer.parseInt(args[3]);
+		int sPort = Integer.parseInt(argumentos[1]);
+		int cPort = Integer.parseInt(argumentos[3]);
 
-		InetAddress sIP = InetAddress.getByName(args[0]);
-		InetAddress cIP = InetAddress.getByName(args[2]);
+		InetAddress sIP = InetAddress.getByName(argumentos[0]);
+		InetAddress cIP = InetAddress.getByName(argumentos[2]);
 		Socket s = new Socket(sIP, sPort, cIP, cPort);
 		
 //		byte[] cADDR = s.getInetAddress().getAddress();

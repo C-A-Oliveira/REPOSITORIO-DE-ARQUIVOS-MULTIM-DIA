@@ -1,0 +1,12 @@
+master_server 
+	ip 127.0.0.1
+	storage listener 5000
+	client listener 6000
+
+storage_server_01 127.0.0.11:5001
+storage_server_02 127.0.0.12:5001
+
+client_01 127.0.0.101:5001
+client_02 127.0.0.102:5001
+client_03 127.0.1.101:5001
+client_04 127.0.2.102:5001

@@ -224,8 +224,9 @@ class ServerImplementation {
 						byte[] message = m.getMessage();
 
 						m.showMessage();
-
-						System.out.println("writing arq to storage: " + stdos.toString());
+						
+						System.out.println(">>>>>>writing to :" + ipStorage);
+						//System.out.println("writing arq to storage: " + stdos.toString());
 						stdos.write(message);
 
 						addArqFile(m.getHeader().getNome(), ipStorage);
@@ -288,7 +289,7 @@ class ServerImplementation {
 			
 			
 			//TODO: IMPLEMENTAR			
-			String ipStorage = "192.168.15.6";
+			String ipStorage = "127.0.0.1";
 			String portStorage = "33336";
 
 			String[] resultado = new String[2];

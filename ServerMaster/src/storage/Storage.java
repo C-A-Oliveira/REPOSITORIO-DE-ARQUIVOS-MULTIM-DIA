@@ -18,35 +18,48 @@ public class Storage {
 	public static final byte RECEBE_REQ_SERVER = (byte) 0x05;
 
 	public static void main(String[] args) throws IOException {
-//		testAESEncryptionAndDecryption();
-		// server is listening on port 33333
-		//ServerSocket ss = new ServerSocket(33336);
-
+		String[] argumentos = new String[4];
+		//Arquivo de configuracao (argumentos)
+		BufferedReader bfr = new BufferedReader( new FileReader("storageConf.txt"));
+		String line = bfr.readLine();
+		bfr.close();
+		line = line.replaceAll(" ", "");//Remove todos os espacos
+		String[] split = new String[4];
+		split = line.split(",");
+		
+		argumentos[0] = split[0];
+		argumentos[1] = split[1];
+		argumentos[2] = split[2];
+		argumentos[3] = split[3];
+		
+		
 		// running infinite loop for getting client request
+		int sPort = Integer.parseInt(argumentos[1]);
+		int cPort = Integer.parseInt(argumentos[3]);
+
+		InetAddress sIP = InetAddress.getByName(argumentos[0]);
+		InetAddress cIP = InetAddress.getByName(argumentos[2]);
+		Socket s = new Socket(sIP, sPort, cIP, cPort);
+		
+//		byte[] cADDR = s.getInetAddress().getAddress();
+//		String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
+//				+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+
+		System.out.println("A new server is connected : " + s);
+		
+		// obtaining input and out streams
+		DataInputStream dis = new DataInputStream(s.getInputStream());
+		DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+		
 		boolean loop = true;
 		while (loop) {
 
 			try {
-				// socket object to receive incoming client requests
-				int sPort = Integer.parseInt(args[1]);
-				int cPort = Integer.parseInt(args[3]);
-
-				InetAddress sIP = InetAddress.getByName(args[0]);
-				InetAddress cIP = InetAddress.getByName(args[2]);
-				Socket s = new Socket(sIP, sPort, cIP, cPort);
-
-				//System.out.println("A new client is connected : " + s);
-
-				// obtaining input and out streams
-				DataInputStream dis = new DataInputStream(s.getInputStream());
-				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-
 				// READ
-				//ArrayList<Byte> receivedList = new ArrayList<Byte>();
 				while (true) {
 					try {
 						// READING
-
+						
 						int lenght = dis.readInt();
 
 						byte[] received = new byte[lenght];
@@ -96,7 +109,9 @@ public class Storage {
 								writeArq(body, nomeArq);
 							}
 						}
-
+					}catch (EOFException a) {
+						a.printStackTrace();
+						break;
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -106,6 +121,7 @@ public class Storage {
 				e.printStackTrace();
 			}
 		}
+		s.close();
 		//ss.close();
 	}
 
@@ -115,12 +131,8 @@ public class Storage {
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
 
-		File file = new File(_nome);// TODO: implement, isso eh so pra teste
-
+		File file = new File(_nome);
 		arq = readContentIntoByteArray(file);
-
-		// throw new UnsupportedOperationException("todo, not implemented yet");
-		// implement
 
 		return arq;
 	}
@@ -146,19 +158,14 @@ public class Storage {
 	// Cria o arquivo
 	private static void writeArq(byte[] _arq, String _nomeArq) {
 
-		// TODO: implement, so pra teste
-		// SOMENTE PARA TESTE - AQUI DEVE FICAR O CODIGO PARA GRAVACAO APROPRIADO NO
-		// STORAGE
 		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(_arq);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			System.out.println("Arquivo criado. - " + _nomeArq);
+			stream.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Arquivo criado. - " + _nomeArq);
 
-		// return arq;
 	}
 	
 	// ===================== Metodo utiliario ========================================

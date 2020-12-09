@@ -1,0 +1,13 @@
+﻿Ip do servidor, porta do servidor, ip local, porta local
+
+
+
+
+O tamanho da string é irrelevante, a virgula (',') eh o que separa os valores
+Nao faz diferença ter espaços, eles são removidos no código.
+
+Exemplo de ip = 192.168.0.1
+	"localhost" tambem pode ser usado para o IP
+Exemplo de porta = 33333
+
+Provavelmente ainda alterarei o codigo para pegar o ip local automaticamente, oque removera 1 argumento desse arquivo.

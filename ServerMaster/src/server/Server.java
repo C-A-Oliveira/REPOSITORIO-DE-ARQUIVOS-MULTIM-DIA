@@ -21,11 +21,22 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
-	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos sincronizados
-	//Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
+	public static final String nomeArqPermissao = "arqPermissao.txt";
+	public static final Semaphore semaforoPermissao = new Semaphore(1);
+
+	public static final String nomeArqUser = "arqUser.txt";
+	public static final Semaphore semaforoUser = new Semaphore(1);
+
+	public static final String nomeArqFiles = "arqFiles.txt";
+	public static final Semaphore semaforoFiles = new Semaphore(1);
+
+	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
+	// sincronizados
+	// Mapas usados para manter os DataOutputStream de todos os storages e clients
+	// para que nao haja necessidade de criar mais sockets
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
-	
+
 	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
@@ -35,10 +46,9 @@ class ServerImplementation {
 	public void main(String[] args) throws IOException {
 		ClientListener clientListener = new ClientListener();
 		StorageListener storageListener = new StorageListener();
-		
+
 		clientListener.start();
 		storageListener.start();
-		
 	}
 
 	class ClientListener extends Thread {
@@ -74,14 +84,14 @@ class ServerImplementation {
 
 						// obtaining input and out streams
 						DataInputStream disC = new DataInputStream(socketC.getInputStream());
-						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());// TODO: remover
+						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
 
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
-						System.out.println("Assigning new thread client " + nameC);
-						
+						// System.out.println("Assigning new thread client " + nameC);
+
 						String ipClient = socketC.getInetAddress().toString().substring(1);
-						Thread tC = new ClientHandler(disC, ipClient);
+						Thread tC = new ClientHandler(disC, ipClient, socketC);
 
 						// create a new thread object
 						tC.setName(nameC);
@@ -89,14 +99,12 @@ class ServerImplementation {
 
 					} catch (Exception e) {
 						e.printStackTrace();
-						System.out.println("socket Closed");
+						System.out.println("Socket Closed");
 						socketC.close();
-						break; // TESTE
 					}
 				}
-				//ssc.close();
+				ssc.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -131,18 +139,18 @@ class ServerImplementation {
 						// TODO: Alterar getIpSocket para retornar IP *e* porta
 						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
 
-						System.out.println("Assigning new thread storage " + nameSt);
-						Thread tSt = new StorageHandler(disSt);
+						// System.out.println("Assigning new thread storage " + nameSt);
+						Thread tSt = new StorageHandler(disSt, socketSt);
 
 						tSt.setName(nameSt);
 						tSt.start();
 					} catch (Exception e) {
 						e.printStackTrace();
-						System.out.println("socket Closed");
+						System.out.println("Socket Closed");
 						socketSt.close();
-						break; // TESTE
 					}
 				}
+				sst.close();
 			} catch (IOException io) {
 				io.printStackTrace();
 			}
@@ -152,29 +160,27 @@ class ServerImplementation {
 // ClientHandler class
 	class ClientHandler extends Thread {
 		final DataInputStream dis;
-		Semaphore semUser;
-		Semaphore semArq;
-		Semaphore semPort; // Desnecessario?
+		final Socket s;
 
 //		final String ipServer;
 //		final String portaServer;
-		
+
 		public String ipClient;
 
 		// Constructor
-		public ClientHandler(DataInputStream dis, String ipClient) {
+		public ClientHandler(DataInputStream dis, String ipClient, Socket _s) {
 			this.dis = dis;
-			semUser = new Semaphore(1);
-			semArq = new Semaphore(1);
 			this.ipClient = ipClient;
+			this.s = _s;
 //			this.ipServer = ipServer;
 //			this.portaServer = portaServer;
 		}
 
 		@Override
 		public void run() {
-			System.out.println("executando run da thread ClientHandler");
-			while (true) {
+			// System.out.println("executando run da thread ClientHandler");
+			boolean loop = true;
+			while (loop) {
 				try {
 					// READING
 					int lenght = dis.readInt();
@@ -206,13 +212,12 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
-						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
-						// unico string com ip e porta
+						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
-						
-						DataOutputStream stdos = null;						
+
+						DataOutputStream stdos = null;
 						stdos = mapDOSStorage.get(ipStorage);
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
@@ -222,6 +227,9 @@ class ServerImplementation {
 
 						System.out.println("writing arq to storage: " + stdos.toString());
 						stdos.write(message);
+
+						addArqFile(m.getHeader().getNome(), ipStorage);
+
 						// s.close();
 					} else {
 						if (mode == RECEBE_REQ_CLIENT) {
@@ -232,15 +240,15 @@ class ServerImplementation {
 								byte[] message = m.getMessage();
 
 								// Escolha do storage
-								String[] splitEscolha = escolhaStorageDownload();
+								String[] splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
 								String ipStorage = splitEscolha[0];
-								// String portaStorage = splitEscolha[1];
+								 // String portaStorage = splitEscolha[1];
 
 								DataOutputStream stdos = null;
 								stdos = mapDOSStorage.get(ipStorage);
-								
-								mapClientArq.put(m.getHeader().getNome() , this.ipClient);
-								
+
+								mapClientArq.put(m.getHeader().getNome(), this.ipClient);
+
 								System.out.println("writing req to storage: " + stdos.toString());
 								stdos.write(message);
 
@@ -249,18 +257,37 @@ class ServerImplementation {
 					}
 				} catch (SocketException se) {
 					se.printStackTrace();
-					break;
+					try {
+						this.s.close();
+						loop = false;
+						break;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			} // Fim do while
 		}// Fim do metodo run
 
-		
+		public void addArqFile(String nomeArq, String ipStorage) {
+			//semaforoFiles.acquire();
+			try {
+				FileWriter fw = new FileWriter(new File(nomeArqFiles));
+				fw.append(nomeArq + ";" + ipStorage);
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			//semaforoFiles.release();
+		}
+
 		// Qual storage deve receber o arquivo?
 		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 		public String[] escolhaStorageUpload() {
-			// TODO: implementar escolha
+			
+			
+			//TODO: IMPLEMENTAR			
 			String ipStorage = "192.168.15.6";
 			String portStorage = "33336";
 
@@ -268,19 +295,43 @@ class ServerImplementation {
 			resultado[0] = ipStorage;
 			resultado[1] = portStorage;
 			return resultado;
+			
 		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
-		public String[] escolhaStorageDownload() {
-			// TODO: implementar escolha
-			String ipStorage = "192.168.15.6";
-			String portStorage = "33336";
-
-			String[] resultado = new String[2];
-			resultado[0] = ipStorage;
-			resultado[1] = portStorage;
-			return resultado;
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
+		// unico string com ip e porta?
+		public String[] escolhaStorageDownload(String arq) {
+			//semaforoFiles.acquire();
+			String[] outIp = new String[2];
+			outIp[1] = "33336";//TODO: Remover e so retornar 1 unico string com a porta apropriada?
+			try {
+				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+				String line = null;
+				
+				do {
+					line = fr.readLine();
+					if(line == null) {
+						break;
+					}
+					
+					String[] split = line.split(";");
+					String nomeArq = split[0];
+					String ip = split[1];
+					//String porta = split[2];
+					if(nomeArq == arq) {
+						outIp[0] = ip;
+						//outIp[1] = porta;
+					}
+				}while(line !=null);
+				fr.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			System.out.println("ip storage escolhido = " + outIp[0]);
+			System.out.println("porta storage escolhido = " + outIp[1]);
+			//semaforoFiles.release();
+			return outIp;
 		}
 
 	}
@@ -288,22 +339,20 @@ class ServerImplementation {
 // StorageHandler class
 	class StorageHandler extends Thread {
 		final DataInputStream dis;
-		// final Socket s;
-		Semaphore semUser;
-		Semaphore semArq;
+		final Socket s;
 
 		// Constructor
-		public StorageHandler(DataInputStream dis) {
+		public StorageHandler(DataInputStream dis, Socket socketSt) {
 			// this.s = s;
 			this.dis = dis;
-			semUser = new Semaphore(1);
-			semArq = new Semaphore(1);
+			this.s = socketSt;
 		}
 
 		@Override
 		public void run() {
 			System.out.println("executando run da thread StorageHandler");
-			while (true) {
+			boolean loop = true;
+			while (loop) {
 				try {
 
 					// READING
@@ -336,16 +385,18 @@ class ServerImplementation {
 
 						Mensagem m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, body);
 						byte[] message = m.getMessage();
-						
-						//String[] splitEscolha = escolhaClientDownload();
-						//TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
-						//TODO: adicionar ip ao cabecalho
-						String ipClient = mapClientArq.get(m.getHeader().getNome()) ;
-						//String portClient = splitEscolha[1]; 
+
+						//// String[] splitEscolha = escolhaClientDownload();
+
+						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho para evitar esse tipo de codigo?
+						String ipClient = mapClientArq.get(m.getHeader().getNome());
+						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
-						
+
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
+
+						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro usuario fazer download desse arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -354,38 +405,99 @@ class ServerImplementation {
 
 				} catch (SocketException se) {
 					se.printStackTrace();
-					break;
+					try {
+						this.s.close();
+						loop = false;
+						break;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 
 		}// Fim do metodo run
-		
-		//Qual cliente deve receber o arquivo?
-		// TODO: alterar escolhaClientDownload para retornar um unico string com ip e porta?
-		public String[] escolhaClientDownload() {
-			
-			//TODO: IMPLEMENTAR
-			String ipClient = "192.168.15.2";
-			String portClient = "33336";
-			
-			String[] resultado = new String[2];
-			resultado[0] = ipClient;
-			resultado[1] = portClient;
-			return resultado;
+
+		// Adiciona uma nova linha no arquivo de permissoes
+		protected void addPermissaoClient(String arq, long user) {
+			// try {
+			// semaforoPermissao.acquire();
+
+			File fileArq = new File(nomeArqPermissao);
+			try {
+				FileWriter fw = new FileWriter(fileArq);
+				fw.append('\n'); // TODO: Isso causa dependencia de sistema?
+				fw.append((arq + ";" + user));
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			// semaforoPermissao.release();
+			// }
+//			catch (InterruptedException e1) {
+//				e1.printStackTrace();
+//			}
 		}
+
+//		// Qual cliente deve receber o arquivo?
+//		public String[] escolhaClientDownload() {
+//
+//			String ipClient = "192.168.15.2";
+//			String portClient = "33336";
+//
+//			String[] resultado = new String[2];
+//			resultado[0] = ipClient;
+//			resultado[1] = portClient;
+//			return resultado;
+//		}
 
 	}// Fim de storage handler
 
 	// ======================== METODOS de ServerImplementation=============================
 
-	public boolean userTemAcesso(long user, String arg) {
-		// TODO: Semaphore?
+	public Boolean userTemAcesso(long user, String arq) {
+		boolean ok = false;
 
-		boolean ok = true; // TODO: implementar, isso eh so pra teste
+		BufferedReader bfr;
+		try {
+			// semaforoPermissao.acquire();
+			bfr = new BufferedReader(new FileReader(nomeArqPermissao));
+			String line;
 
-		// semUser.release();
+			do {
+				line = bfr.readLine();
+				if (line == null) {
+					break;
+				}
+
+				// Assumindo que arqPermissao.txt se pareca com isso: Nome do arquivo1 ;
+				// usuario1, usuario2, usuario 3
+				if (line.split(";")[0] == arq) {
+					// Encontrou linha correspondente do arquivo
+
+					String[] users = line.split(";")[1].split(",");
+					for (int i = 0; i < users.length; i++) {
+						if (Long.parseLong(users[i]) == user) {
+							// Encontrou o usuario
+							ok = true;
+							break;
+						}
+					}
+					break; // Nao ha mais necessidade de continuar lendo o arquivo, saia do loop
+				}
+			} while (line != null);
+
+			// semaforoPermissao.release();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+//		catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+
 		return ok;
 	}
 
@@ -438,11 +550,11 @@ class ServerImplementation {
 			} else if (inetAddress instanceof Inet6Address) {
 				return inetAddress.toString().substring(1);
 			} else {
-				System.err.println("Not an IP address.");
+				System.err.println("Nao eh IP.");
 				return null;
 			}
 		} else {
-			System.err.println("Not an internet protocol socket.");
+			System.err.println("Nao eh um socket IP.");
 			return null;
 		}
 	}

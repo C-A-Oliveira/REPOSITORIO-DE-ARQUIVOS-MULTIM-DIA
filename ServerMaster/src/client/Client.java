@@ -15,7 +15,7 @@ import server.Mensagem;
 
 // Client class 
 public class Client {
-	private static long id = 4; // TODO: como passar um id diferente?
+	private static long id = 1; //TODO: Passar user E senha pro server?
 
 	public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
@@ -24,25 +24,26 @@ public class Client {
 	public static void main(String[] args) throws IOException {
 		try {
 			Scanner scn = new Scanner(System.in);
+			String[] argumentos = new String[4];
 
 			//Arquivo de configuracao (argumentos)
 			BufferedReader bfr = new BufferedReader( new FileReader("clientConf.txt"));
 			String line = bfr.readLine();
 			bfr.close();
-			line = line.replaceAll("\\s+", "");//Remove todos os espacos
+			line = line.replaceAll(" ", "");//Remove todos os espacos
 			String[] split = new String[4];
 			split = line.split(",");
-			args[0] = split[0];
-			args[1] = split[1];
-			args[2] = split[2];
-			args[3] = split[3];
+			argumentos[0] = split[0];
+			argumentos[1] = split[1];
+			argumentos[2] = split[2];
+			argumentos[3] = split[3];
 			
 			
-			int sPort = Integer.parseInt(args[1]);
-			int cPort = Integer.parseInt(args[3]);
+			int sPort = Integer.parseInt(argumentos[1]);
+			int cPort = Integer.parseInt(argumentos[3]);
 
-			InetAddress sIP = InetAddress.getByName(args[0]);
-			InetAddress cIP = InetAddress.getByName(args[2]);
+			InetAddress sIP = InetAddress.getByName(argumentos[0]);
+			InetAddress cIP = InetAddress.getByName(argumentos[2]);
 
 			// establish the connection
 			Socket s = new Socket(sIP, sPort, cIP, cPort);

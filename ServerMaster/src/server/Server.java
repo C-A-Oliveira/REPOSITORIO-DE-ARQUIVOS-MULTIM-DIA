@@ -225,8 +225,7 @@ class ServerImplementation {
 
 						m.showMessage();
 						
-						System.out.println(">>>>>>writing to :" + ipStorage);
-						//System.out.println("writing arq to storage: " + stdos.toString());
+						System.out.println("writing arq to storage: " + stdos.toString());
 						stdos.write(message);
 
 						addArqFile(m.getHeader().getNome(), ipStorage);
@@ -274,7 +273,7 @@ class ServerImplementation {
 		public void addArqFile(String nomeArq, String ipStorage) {
 			//semaforoFiles.acquire();
 			try {
-				FileWriter fw = new FileWriter(new File(nomeArqFiles));
+				FileWriter fw = new FileWriter(new File(nomeArqFiles),true);
 				fw.append(nomeArq + ";" + ipStorage);
 				fw.close();
 			} catch (IOException e) {
@@ -427,7 +426,7 @@ class ServerImplementation {
 
 			File fileArq = new File(nomeArqPermissao);
 			try {
-				FileWriter fw = new FileWriter(fileArq);
+				FileWriter fw = new FileWriter(fileArq,true);
 				fw.append('\n'); // TODO: Isso causa dependencia de sistema?
 				fw.append((arq + ";" + user));
 				fw.close();

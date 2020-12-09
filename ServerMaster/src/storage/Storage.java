@@ -158,19 +158,14 @@ public class Storage {
 	// Cria o arquivo
 	private static void writeArq(byte[] _arq, String _nomeArq) {
 
-		// TODO: implement, so pra teste
-		// SOMENTE PARA TESTE - AQUI DEVE FICAR O CODIGO PARA GRAVACAO APROPRIADO NO
-		// STORAGE
 		try (FileOutputStream stream = new FileOutputStream(_nomeArq)) {
 			stream.write(_arq);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			System.out.println("Arquivo criado. - " + _nomeArq);
+			stream.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Arquivo criado. - " + _nomeArq);
 
-		// return arq;
 	}
 	
 	// ===================== Metodo utiliario ========================================

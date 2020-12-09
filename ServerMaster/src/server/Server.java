@@ -84,7 +84,7 @@ class ServerImplementation {
 
 						// obtaining input and out streams
 						DataInputStream disC = new DataInputStream(socketC.getInputStream());
-						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());// TODO: remover
+						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
 
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
@@ -105,7 +105,6 @@ class ServerImplementation {
 				}
 				ssc.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -213,8 +212,7 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 						// Escolha do storage
-						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
-						// unico string com ip e porta
+						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 						String[] splitEscolha = escolhaStorageUpload();
 						String ipStorage = splitEscolha[0];
 						String portaStorage = splitEscolha[1];
@@ -242,9 +240,9 @@ class ServerImplementation {
 								byte[] message = m.getMessage();
 
 								// Escolha do storage
-								String[] splitEscolha = escolhaStorageDownload();
+								String[] splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
 								String ipStorage = splitEscolha[0];
-								// String portaStorage = splitEscolha[1];
+								 // String portaStorage = splitEscolha[1];
 
 								DataOutputStream stdos = null;
 								stdos = mapDOSStorage.get(ipStorage);
@@ -279,17 +277,17 @@ class ServerImplementation {
 				fw.append(nomeArq + ";" + ipStorage);
 				fw.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			//semaforoFiles.release();
 		}
 
 		// Qual storage deve receber o arquivo?
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
-		// unico string com ip e porta?
+		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
 		public String[] escolhaStorageUpload() {
-			// TODO: implementar escolha
+			
+			
+			//TODO: IMPLEMENTAR			
 			String ipStorage = "192.168.15.6";
 			String portStorage = "33336";
 
@@ -297,20 +295,43 @@ class ServerImplementation {
 			resultado[0] = ipStorage;
 			resultado[1] = portStorage;
 			return resultado;
+			
 		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
 		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
 		// unico string com ip e porta?
-		public String[] escolhaStorageDownload() {
-			// TODO: implementar escolha
-			String ipStorage = "192.168.15.6";
-			String portStorage = "33336";
-
-			String[] resultado = new String[2];
-			resultado[0] = ipStorage;
-			resultado[1] = portStorage;
-			return resultado;
+		public String[] escolhaStorageDownload(String arq) {
+			//semaforoFiles.acquire();
+			String[] outIp = new String[2];
+			outIp[1] = "33336";//TODO: Remover e so retornar 1 unico string com a porta apropriada?
+			try {
+				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+				String line = null;
+				
+				do {
+					line = fr.readLine();
+					if(line == null) {
+						break;
+					}
+					
+					String[] split = line.split(";");
+					String nomeArq = split[0];
+					String ip = split[1];
+					//String porta = split[2];
+					if(nomeArq == arq) {
+						outIp[0] = ip;
+						//outIp[1] = porta;
+					}
+				}while(line !=null);
+				fr.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			System.out.println("ip storage escolhido = " + outIp[0]);
+			System.out.println("porta storage escolhido = " + outIp[1]);
+			//semaforoFiles.release();
+			return outIp;
 		}
 
 	}
@@ -367,8 +388,7 @@ class ServerImplementation {
 
 						//// String[] splitEscolha = escolhaClientDownload();
 
-						// TODO: Nao eh ideal, pegar ip pelo nome do arquivo??
-						// TODO: adicionar ip ao cabecalho?
+						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho para evitar esse tipo de codigo?
 						String ipClient = mapClientArq.get(m.getHeader().getNome());
 						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
@@ -376,9 +396,7 @@ class ServerImplementation {
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
 
-						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro
-																						// usuario fazer download desse
-																						// arquivo
+						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro usuario fazer download desse arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -424,11 +442,8 @@ class ServerImplementation {
 		}
 
 //		// Qual cliente deve receber o arquivo?
-//		// TODO: alterar escolhaClientDownload para retornar um unico string com ip e
-//		// porta?
 //		public String[] escolhaClientDownload() {
 //
-//			// TODO: IMPLEMENTAR
 //			String ipClient = "192.168.15.2";
 //			String portClient = "33336";
 //
@@ -440,8 +455,7 @@ class ServerImplementation {
 
 	}// Fim de storage handler
 
-	// ======================== METODOS de
-	// ServerImplementation=============================
+	// ======================== METODOS de ServerImplementation=============================
 
 	public Boolean userTemAcesso(long user, String arq) {
 		boolean ok = false;
@@ -452,7 +466,6 @@ class ServerImplementation {
 			bfr = new BufferedReader(new FileReader(nomeArqPermissao));
 			String line;
 
-			// TODO: acho que da pra melhorar esse loop, ta dificil de ler
 			do {
 				line = bfr.readLine();
 				if (line == null) {
@@ -479,11 +492,9 @@ class ServerImplementation {
 			// semaforoPermissao.release();
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 //		catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
 

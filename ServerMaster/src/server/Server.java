@@ -27,8 +27,13 @@ class ServerImplementation {
 	public static final String nomeArqUser = "arqUser.txt";
 	public static final Semaphore semaforoUser = new Semaphore(1);
 
-	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos sincronizados
-	// Mapas usados para manter os DataOutputStream de todos os storages e clients para que nao haja necessidade de criar mais sockets
+	public static final String nomeArqFiles = "arqFiles.txt";
+	public static final Semaphore semaforoFiles = new Semaphore(1);
+
+	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
+	// sincronizados
+	// Mapas usados para manter os DataOutputStream de todos os storages e clients
+	// para que nao haja necessidade de criar mais sockets
 	public static Hashtable<String, DataOutputStream> mapDOSStorage = new Hashtable<>();
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
 
@@ -224,6 +229,9 @@ class ServerImplementation {
 
 						System.out.println("writing arq to storage: " + stdos.toString());
 						stdos.write(message);
+
+						addArqFile(m.getHeader().getNome(), ipStorage);
+
 						// s.close();
 					} else {
 						if (mode == RECEBE_REQ_CLIENT) {
@@ -263,6 +271,19 @@ class ServerImplementation {
 				}
 			} // Fim do while
 		}// Fim do metodo run
+
+		public void addArqFile(String nomeArq, String ipStorage) {
+			//semaforoFiles.acquire();
+			try {
+				FileWriter fw = new FileWriter(new File(nomeArqFiles));
+				fw.append(nomeArq + ";" + ipStorage);
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			//semaforoFiles.release();
+		}
 
 		// Qual storage deve receber o arquivo?
 		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
@@ -355,7 +376,9 @@ class ServerImplementation {
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
 
-						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro usuario fazer download desse arquivo
+						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro
+																						// usuario fazer download desse
+																						// arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -380,21 +403,21 @@ class ServerImplementation {
 
 		// Adiciona uma nova linha no arquivo de permissoes
 		protected void addPermissaoClient(String arq, long user) {
-			//try {
-				//semaforoPermissao.acquire();
+			// try {
+			// semaforoPermissao.acquire();
 
-				File fileArq = new File(nomeArqPermissao);
-				try {
-					FileWriter fw = new FileWriter(fileArq);
-					fw.append('\n'); // TODO: Isso causa dependencia de sistema?
-					fw.append((arq + ";" + user));
-					fw.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+			File fileArq = new File(nomeArqPermissao);
+			try {
+				FileWriter fw = new FileWriter(fileArq);
+				fw.append('\n'); // TODO: Isso causa dependencia de sistema?
+				fw.append((arq + ";" + user));
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 
-				//semaforoPermissao.release();
-			//}
+			// semaforoPermissao.release();
+			// }
 //			catch (InterruptedException e1) {
 //				e1.printStackTrace();
 //			}
@@ -417,14 +440,15 @@ class ServerImplementation {
 
 	}// Fim de storage handler
 
-	// ======================== METODOS de ServerImplementation=============================
+	// ======================== METODOS de
+	// ServerImplementation=============================
 
 	public Boolean userTemAcesso(long user, String arq) {
 		boolean ok = false;
 
 		BufferedReader bfr;
 		try {
-			//semaforoPermissao.acquire();
+			// semaforoPermissao.acquire();
 			bfr = new BufferedReader(new FileReader(nomeArqPermissao));
 			String line;
 
@@ -435,7 +459,8 @@ class ServerImplementation {
 					break;
 				}
 
-				// Assumindo que arqPermissao.txt se pareca com isso: Nome do arquivo1 ; usuario1, usuario2, usuario 3
+				// Assumindo que arqPermissao.txt se pareca com isso: Nome do arquivo1 ;
+				// usuario1, usuario2, usuario 3
 				if (line.split(";")[0] == arq) {
 					// Encontrou linha correspondente do arquivo
 
@@ -450,13 +475,13 @@ class ServerImplementation {
 					break; // Nao ha mais necessidade de continuar lendo o arquivo, saia do loop
 				}
 			} while (line != null);
-			
-			//semaforoPermissao.release();
+
+			// semaforoPermissao.release();
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 //		catch (InterruptedException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();

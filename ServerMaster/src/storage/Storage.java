@@ -22,15 +22,14 @@ public class Storage {
 		BufferedReader bfr = new BufferedReader(new FileReader("storageConf.txt"));
 		String line;
 		Vector<String> lines = new Vector<String>();
-		while ((line = bfr.readLine()) != null) {
-
+		while ((line = bfr.readLine()) != null)
 			lines.add(line);
-		}
+		
         InetAddress serverIP = InetAddress.getByName(lines.get(0));
-		int serverPort = Integer.parseInt(lines.get(1));
         InetAddress storageIP_01 = InetAddress.getByName(lines.get(2));
-		int storagePort_01 = Integer.parseInt(lines.get(3));	
         InetAddress storageIP_02 = InetAddress.getByName(lines.get(4));
+		int serverPort = Integer.parseInt(lines.get(1));
+		int storagePort_01 = Integer.parseInt(lines.get(3));	
 		int storagePort_02 = Integer.parseInt(lines.get(5));		
     	
 
@@ -47,6 +46,7 @@ public class Storage {
 		private int storagePort;
 		private InetAddress serverIP;
 		private InetAddress storageIP;
+		private String ROOT_PATH;
 
 		public StartStorage() {}
 		public StartStorage(InetAddress serverIP, int serverPort, InetAddress storageIP, int storagePort) {
@@ -107,8 +107,9 @@ public class Storage {
 
 								// TESTE
 								msg.showMessage();
-
-								if (mode == RECEBE_REQ_SERVER) {
+								
+								switch (mode) {
+								case RECEBE_ARQ_SERVER:
 									// Download
 									byte[] arq = getArq(nomeArq);
 
@@ -116,8 +117,9 @@ public class Storage {
 									byte[] message = m.getMessage();
 
 									dos.write(message);
-								} else {
-									if (mode == RECEBE_ARQ_SERVER) {
+									break;
+									
+								case RECEBE_REQ_SERVER:
 
 										// TESTE
 										System.out.println("> b = " + body.length);
@@ -127,7 +129,9 @@ public class Storage {
 
 										// Upload
 										writeArq(body, nomeArq);
-									}
+									break;
+								default:
+									break;
 								}
 							} catch (EOFException a) {
 								a.printStackTrace();

@@ -238,6 +238,7 @@ class ServerImplementation {
 					byte[] bUser = msg.getHeader().getBUser();
 					long user = bytesToLong(bUser);
 					byte[] bNomeArq = msg.getHeader().getBNome();
+					String nomeArq = msg.getHeader().getNome();
 					byte[] body = msg.getBody();
 
 					String[] splitEscolha;
@@ -286,7 +287,9 @@ class ServerImplementation {
 						for(int i=0; i<chaves.size();i++) {
 							dosAll.add(mapDOSStorage.get(chaves.get(i)));
 						}
-
+						
+						
+						bNomeArq = ("REPLICADO//"+nomeArq).getBytes(StandardCharsets.UTF_8);
 						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 						message = m.getMessage();
 						
@@ -324,6 +327,7 @@ class ServerImplementation {
 						int contadorDiv = 0;
 						int sizeCopy;
 						
+						bNomeArq = ("PARTICIONADO//"+nomeArq).getBytes(StandardCharsets.UTF_8);
 						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, new byte[0]);//Somente para uso da permissao
 						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
 						

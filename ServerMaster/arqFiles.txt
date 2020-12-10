@@ -1,0 +1,2 @@
+
+PARTICIONADO//lorem.txt;DIV0;127.0.0.10:33336

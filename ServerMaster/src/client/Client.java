@@ -17,9 +17,11 @@ import server.Mensagem;
 public class Client {
 	private static long id = 1; //TODO: Passar user E senha pro server?
 
-	public static final byte ENVIA_ARQ = (byte) 0x00;
+	//public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
+	public static final byte ENVIA_ARQ_REP_CLIENT = (byte) 0x06;
+	public static final byte ENVIA_ARQ_DIV_CLIENT = (byte) 0x07;
 
 	public static void main(String[] args) throws IOException {
 		try {
@@ -65,17 +67,36 @@ public class Client {
 			while (loop) {
 
 				System.out.println("===SELECAO DE OPCAO===");
-				System.out.println("Digite 'upload' para enviar um arquivo.");
+				//System.out.println("Digite 'upload' para enviar um arquivo.");
+				System.out.println("Digite 'replicacao' para enviar e replicar o arquivo nos servidor de armazenamento.");
+				System.out.println("Digite 'divisao' para enviar e dividir o arquivo entre os servidor de armazenamento.");
 				System.out.println("Digite 'download' para baixar um arquivo.");
 				System.out.println("Digite 'sair' para sair.");
 				String opcao = scn.nextLine();
 				byte modo = (byte) 0x00;
 				byte[] bytes = null;
 				String nomeArq = null;
+				Path pathArq = null;
 				switch (opcao) {
-				case "upload":
-					Path pathArq = null;
-					modo = ENVIA_ARQ;
+//				case "upload":
+//					pathArq = null;
+//					modo = ENVIA_ARQ;
+//					System.out.println("Escreva o nome do arquivo a ser enviado: ");
+//					pathArq = Paths.get(scn.nextLine());
+//					nomeArq = pathArq.getFileName().toString();
+//					bytes = getArq(pathArq.toString());
+//					break;
+				case "replicacao":
+					pathArq = null;
+					modo = ENVIA_ARQ_REP_CLIENT;
+					System.out.println("Escreva o nome do arquivo a ser enviado: ");
+					pathArq = Paths.get(scn.nextLine());
+					nomeArq = pathArq.getFileName().toString();
+					bytes = getArq(pathArq.toString());
+					break;
+				case "divisao":
+					pathArq = null;
+					modo = ENVIA_ARQ_DIV_CLIENT;
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
@@ -171,7 +192,7 @@ class ServerHandler extends Thread {
 	final Socket s;
 
 	// Constantes do cabecalho (modo)
-	public static final byte ENVIA_ARQ = (byte) 0x00;
+	//public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
 

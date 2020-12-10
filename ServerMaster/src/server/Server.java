@@ -1,6 +1,10 @@
 package server;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.concurrent.Semaphore;
 
@@ -12,15 +16,19 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 
+
 class ServerImplementation {
 
-	public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
+	// public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
+	public static final byte RECEBE_ARQ_REP_CLIENT = (byte) 0x06;
+	public static final byte RECEBE_ARQ_DIV_CLIENT = (byte) 0x07;
 	public static final byte RECEBE_ARQ_STORAGE = (byte) 0x02;
 	public static final byte RECEBE_REQ_CLIENT = (byte) 0x04;
 	public static final byte ENVIA_ARQ_STORAGE = (byte) 0x01;
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
 
+	//TODO: semaforos
 	public static final String nomeArqPermissao = "arqPermissao.txt";
 	public static final Semaphore semaforoPermissao = new Semaphore(1);
 
@@ -136,7 +144,6 @@ class ServerImplementation {
 						DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
 						DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
 
-						// TODO: Alterar getIpSocket para retornar IP *e* porta
 						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
 
 						// System.out.println("Assigning new thread storage " + nameSt);
@@ -207,52 +214,132 @@ class ServerImplementation {
 					byte[] bNomeArq = msg.getHeader().getBNome();
 					byte[] body = msg.getBody();
 
+					String[] splitEscolha;
+					String ipStorage;
+					Mensagem m;
+					byte[] message;
+					DataOutputStream dos;
+					DataOutputStream stdos;
+					String portaStorage;
+					ArrayList<DataOutputStream> dosAll;
+					ArrayList<String> chaves;
+					
 					// Logica
-					if (mode == RECEBE_ARQ_CLIENT) {
-						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
+					switch (mode) {
+//					case RECEBE_ARQ_CLIENT:
+//						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
+//
+//						// Escolha do storage
+//						String[] splitEscolha = escolhaStorageUpload();
+//						String ipStorage = splitEscolha[0];
+//						String portaStorage = splitEscolha[1];
+//
+//						DataOutputStream stdos = null;
+//						stdos = mapDOSStorage.get(ipStorage);
+//
+//						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
+//						byte[] message = m.getMessage();
+//
+//						m.showMessage();
+//						
+//						System.out.println("writing arq to storage: " + stdos.toString());
+//						stdos.write(message);
+//
+//						addArqFile(m.getHeader().getNome(), ipStorage);
+//
+//						// s.close();
+//						break;
+					case RECEBE_ARQ_REP_CLIENT:
+						// -- UPLOAD REPLICADO: Client (bytes arq) -> Server -> Storage
 
-						// Escolha do storage
-						// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
-						String[] splitEscolha = escolhaStorageUpload();
-						String ipStorage = splitEscolha[0];
-						String portaStorage = splitEscolha[1];
+						stdos = null;
+						//stdos = mapDOSStorage.get(ipStorage);
+						//TODO: isso nao era ideal ter nessa parte do codigo?
+						dosAll = new ArrayList<>();
+						chaves = Collections.list( mapDOSStorage.keys() ) ;
+						for(int i=0; i<chaves.size();i++) {
+							dosAll.add(mapDOSStorage.get(chaves.get(i)));
+						}
 
-						DataOutputStream stdos = null;
-						stdos = mapDOSStorage.get(ipStorage);
-
-						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
-						byte[] message = m.getMessage();
+						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
+						message = m.getMessage();
+						
+						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
 
 						m.showMessage();
 						
-						System.out.println("writing arq to storage: " + stdos.toString());
-						stdos.write(message);
+						for(int i = 0 ; i<dosAll.size();i++) {
+							stdos = dosAll.get(i);
+							System.out.println("writing arq to storage: " + stdos.toString());
+							stdos.write(message);
+							addArqFile(m.getHeader().getNome(), "REP", chaves.get(i));
+						}
 
-						addArqFile(m.getHeader().getNome(), ipStorage);
+						
 
 						// s.close();
-					} else {
-						if (mode == RECEBE_REQ_CLIENT) {
-							// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
-							// Se o usuario possui acesso, entao envie a requisicao ao storage
-							if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
-								Mensagem m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
-								byte[] message = m.getMessage();
+						break;
+					case RECEBE_ARQ_DIV_CLIENT:
+						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
-								// Escolha do storage
-								String[] splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
-								String ipStorage = splitEscolha[0];
-								 // String portaStorage = splitEscolha[1];
 
-								DataOutputStream stdos = null;
-								stdos = mapDOSStorage.get(ipStorage);
+						stdos = null;
+						//stdos = mapDOSStorage.get(ipStorage);
+						//TODO: isso nao era ideal ter nessa parte do codigo?
+						dosAll = new ArrayList<>();
+						chaves = Collections.list( mapDOSStorage.keys() ) ;
+						for(int i=0; i<chaves.size();i++) {
+							dosAll.add(mapDOSStorage.get(chaves.get(i)));
+						}
+						int tam = dosAll.size();
 
-								mapClientArq.put(m.getHeader().getNome(), this.ipClient);
-
-								System.out.println("writing req to storage: " + stdos.toString());
-								stdos.write(message);
-
+						byte[] bodyDiv = new byte[body.length/tam];
+						int contadorDiv = 0;
+						int sizeCopy;
+						
+						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, new byte[0]);//Somente para uso da permissao
+						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
+						
+						for(int i = 0 ; i<dosAll.size();i++) {
+							if(i==dosAll.size()-1) {
+								sizeCopy = body.length - (bodyDiv.length*tam); //TODO: VERIFICAR
+							}else {
+								sizeCopy = body.length;
 							}
+							System.out.println("sizeCopy = " + sizeCopy);
+							sizeCopy = bodyDiv.length;
+							bodyDiv = Arrays.copyOfRange(body, contadorDiv, sizeCopy);
+							message = m.getMessage();
+							m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, bodyDiv);
+							m.showMessage();
+							stdos = dosAll.get(i);
+							System.out.println("writing arq to storage: " + stdos.toString());
+							stdos.write(message);
+							contadorDiv+= body.length/tam;
+							addArqFile(m.getHeader().getNome(), "DIV", chaves.get(i));
+						}
+
+						// s.close();
+						break;
+					case RECEBE_REQ_CLIENT:
+						// -- DOWNLOAD: Client (nome arq) -> Server -> Storage
+						// Se o usuario possui acesso, entao envie a requisicao ao storage
+						if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
+							m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
+							message = m.getMessage();
+
+							// Escolha do storage
+							splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
+							ipStorage = splitEscolha[0];
+
+							stdos = null;
+							stdos = mapDOSStorage.get(ipStorage);
+
+							mapClientArq.put(m.getHeader().getNome(), this.ipClient);
+
+							System.out.println("writing req to storage: " + stdos.toString());
+							stdos.write(message);
+							break;
 						}
 					}
 				} catch (SocketException se) {
@@ -269,69 +356,95 @@ class ServerImplementation {
 				}
 			} // Fim do while
 		}// Fim do metodo run
+		
+		// Adiciona uma nova linha no arquivo de permissoes
+		protected void addPermissaoClient(String arq, long user) {
+			// try {
+			// semaforoPermissao.acquire();
 
-		public void addArqFile(String nomeArq, String ipStorage) {
-			//semaforoFiles.acquire();
+			File fileArq = new File(nomeArqPermissao);
 			try {
-				FileWriter fw = new FileWriter(new File(nomeArqFiles),true);
-				fw.append(nomeArq + ";" + ipStorage);
+				FileWriter fw = new FileWriter(fileArq, true);
+				fw.append('\n'); // TODO: Isso causa dependencia de sistema?
+				fw.append((arq + ";" + user));
 				fw.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			//semaforoFiles.release();
+
+			// semaforoPermissao.release();
+			// }
+//			catch (InterruptedException e1) {
+//				e1.printStackTrace();
+//			}
+		}
+		
+		public long bytesToLong(byte[] bytes) {
+			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+			buffer.put(bytes);
+			buffer.flip();// need flip
+			return buffer.getLong();
 		}
 
-		// Qual storage deve receber o arquivo?
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um unico string com ip e porta?
-		public String[] escolhaStorageUpload() {
-			
-			
-			//TODO: IMPLEMENTAR			
-			String ipStorage = "127.0.0.1";
-			String portStorage = "33336";
-
-			String[] resultado = new String[2];
-			resultado[0] = ipStorage;
-			resultado[1] = portStorage;
-			return resultado;
-			
+		public void addArqFile(String nomeArq, String _modo, String ipStorage) {
+			// semaforoFiles.acquire();
+			try {
+				FileWriter fw = new FileWriter(new File(nomeArqFiles), true);
+				fw.append('\n');
+				fw.append(nomeArq + ";" + _modo + ";" + ipStorage);
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			// semaforoFiles.release();
 		}
+
+//		// Qual storage deve receber o arquivo?
+//		public String[] escolhaStorageUpload() {
+//
+//			// TODO: IMPLEMENTAR
+//			String ipStorage = "127.0.0.1";
+//			String portStorage = "33336";
+//
+//			String[] resultado = new String[2];
+//			resultado[0] = ipStorage;
+//			resultado[1] = portStorage;
+//			return resultado;
+//
+//		}
 
 		// Qual storage tem o arquivo? Envie a REQUISICAO para ele
-		// TODO: alterar escolhaStorageUpload e escolhaStorageDownload para retornar um
-		// unico string com ip e porta?
 		public String[] escolhaStorageDownload(String arq) {
-			//semaforoFiles.acquire();
-			String[] outIp = new String[2];
-			outIp[1] = "33336";//TODO: Remover e so retornar 1 unico string com a porta apropriada?
+			// semaforoFiles.acquire();
+			ArrayList<String> outIp = new ArrayList<String>();
 			try {
 				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
 				String line = null;
-				
+
 				do {
 					line = fr.readLine();
-					if(line == null) {
+					if (line == null) {
 						break;
 					}
-					
+
 					String[] split = line.split(";");
 					String nomeArq = split[0];
-					String ip = split[1];
-					//String porta = split[2];
-					if(nomeArq == arq) {
-						outIp[0] = ip;
-						//outIp[1] = porta;
+					String modoArq = split[1];
+					String ip = split[2];
+					String porta = split[3];
+					porta = "33336"; //TODO: remover?
+					if (nomeArq == arq) //CONSIDERAR: AND modoArq = "DIV"?
+					{
+						outIp.add(ip+":"+porta);
 					}
-				}while(line !=null);
+				} while (line != null);
 				fr.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("ip storage escolhido = " + outIp[0]);
-			System.out.println("porta storage escolhido = " + outIp[1]);
-			//semaforoFiles.release();
-			return outIp;
+			
+			// semaforoFiles.release();
+			return outIp.toArray(new String[0]);
 		}
 
 	}
@@ -388,15 +501,14 @@ class ServerImplementation {
 
 						//// String[] splitEscolha = escolhaClientDownload();
 
-						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho para evitar esse tipo de codigo?
+						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho
+						// para evitar esse tipo de codigo?
 						String ipClient = mapClientArq.get(m.getHeader().getNome());
 						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
 
 						System.out.println("writing to cliente: " + dos.toString());
 						dos.write(message);
-
-						addPermissaoClient(m.getHeader().getNome(), bytesToLong(user)); // Adiciona permissao pro usuario fazer download desse arquivo
 					}
 
 					// System.out.println("received message from client " + this.s.getPort() + "! >>
@@ -419,27 +531,7 @@ class ServerImplementation {
 
 		}// Fim do metodo run
 
-		// Adiciona uma nova linha no arquivo de permissoes
-		protected void addPermissaoClient(String arq, long user) {
-			// try {
-			// semaforoPermissao.acquire();
 
-			File fileArq = new File(nomeArqPermissao);
-			try {
-				FileWriter fw = new FileWriter(fileArq,true);
-				fw.append('\n'); // TODO: Isso causa dependencia de sistema?
-				fw.append((arq + ";" + user));
-				fw.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			// semaforoPermissao.release();
-			// }
-//			catch (InterruptedException e1) {
-//				e1.printStackTrace();
-//			}
-		}
 
 //		// Qual cliente deve receber o arquivo?
 //		public String[] escolhaClientDownload() {
@@ -539,16 +631,16 @@ class ServerImplementation {
 		}
 	}
 
-	// TODO: alterar para retornar ip *e* porta
 	public static String getIpSocket(Socket socket) {
 		SocketAddress socketAddress = socket.getRemoteSocketAddress();
 
 		if (socketAddress instanceof InetSocketAddress) {
 			InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
+			int port = socket.getPort();
 			if (inetAddress instanceof Inet4Address) {
-				return inetAddress.toString().substring(1);
+				return inetAddress.toString().substring(1) +":"+ port;
 			} else if (inetAddress instanceof Inet6Address) {
-				return inetAddress.toString().substring(1);
+				return inetAddress.toString().substring(1) +":"+ port;
 			} else {
 				System.err.println("Nao eh IP.");
 				return null;

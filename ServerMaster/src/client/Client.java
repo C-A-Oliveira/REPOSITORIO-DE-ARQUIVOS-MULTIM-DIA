@@ -38,13 +38,14 @@ public class Client {
 			argumentos[2] = split[2];
 			argumentos[3] = split[3];
 			
-			
+
+			// running infinite loop for getting client request
 			int sPort = Integer.parseInt(argumentos[1]);
 			int cPort = Integer.parseInt(argumentos[3]);
-
-			InetAddress sIP = InetAddress.getByName(argumentos[0]);
-			InetAddress cIP = InetAddress.getByName(argumentos[2]);
-
+			
+	        InetAddress sIP = InetAddress.getByName(argumentos[0]);
+	        InetAddress cIP = InetAddress.getByName(argumentos[2]);
+	    	
 			// establish the connection
 			Socket s = new Socket(sIP, sPort, cIP, cPort);
 

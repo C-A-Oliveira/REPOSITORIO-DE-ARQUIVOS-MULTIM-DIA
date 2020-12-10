@@ -1,2 +1,0 @@
-teste.txt;1
-lorem.txt;1

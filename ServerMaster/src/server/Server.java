@@ -2,6 +2,7 @@ package server;
 
 import java.io.*;
 import java.util.Hashtable;
+import java.util.Vector;
 import java.util.concurrent.Semaphore;
 
 import crypto.AsymmetricCryptoManager;
@@ -20,6 +21,10 @@ class ServerImplementation {
 	public static final byte ENVIA_ARQ_STORAGE = (byte) 0x01;
 	public static final byte ENVIA_ARQ_CLIENT = (byte) 0x03;
 	public static final byte ENVIA_REQ_STORAGE = (byte) 0x05;
+	public static String PATH_STORAGE_01 = "db\\STORAGE_01\\";
+	public static String PATH_STORAGE_02 = "db\\STORAGE_02\\";
+	public static String PATH_REP = "\\REPLICADO";
+	public static String PATH_PAR = "\\PARTICIONADO";
 
 	public static final String nomeArqPermissao = "arqPermissao.txt";
 	public static final Semaphore semaforoPermissao = new Semaphore(1);
@@ -28,7 +33,10 @@ class ServerImplementation {
 	public static final Semaphore semaforoUser = new Semaphore(1);
 
 	public static final String nomeArqFiles = "arqFiles.txt";
+
 	public static final Semaphore semaforoFiles = new Semaphore(1);
+	
+	private Vector<String> users = new Vector<String>();
 
 	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
 	// sincronizados
@@ -46,6 +54,8 @@ class ServerImplementation {
 	public void main(String[] args) throws IOException {
 		ClientListener clientListener = new ClientListener();
 		StorageListener storageListener = new StorageListener();
+		
+		listUsers();
 
 		clientListener.start();
 		storageListener.start();
@@ -75,8 +85,12 @@ class ServerImplementation {
 
 						byte[] ccADDR = socketC.getInetAddress().getAddress();
 
-						String nameC = String.valueOf(ccADDR[0]) + "." + String.valueOf(ccADDR[1]) + "."
-								+ String.valueOf(ccADDR[2]) + "." + String.valueOf(ccADDR[3]) + ":" + socketC.getPort();
+						String nameC = 
+										String.valueOf(ccADDR[0]) + "_" + 
+										String.valueOf(ccADDR[1]) + "_" + 
+										String.valueOf(ccADDR[2]) + "_" + 
+										String.valueOf(ccADDR[3]) + "_" + 
+										socketC.getPort();
 
 						if (socketC != null) {
 							System.out.println("A new client is connected : " + socketC);
@@ -92,6 +106,16 @@ class ServerImplementation {
 
 						String ipClient = socketC.getInetAddress().toString().substring(1);
 						Thread tC = new ClientHandler(disC, ipClient, socketC);
+
+						//	VERIFICAR LISTA DE USARIOS 
+						// 		CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
+						// 		CRIAR DIRETORIOS PARA O CLIENT NOS STORAGES
+						listUsers();
+						if (!userExists(nameC)) {
+							addUserToList(nameC);
+						}
+						/*	 */	
+						
 
 						// create a new thread object
 						tC.setName(nameC);
@@ -499,6 +523,35 @@ class ServerImplementation {
 //		}
 
 		return ok;
+	}
+
+	public boolean userExists(String client) {
+		for(String user : users)
+			if(user.compareTo(client) == 0) return true;
+			
+		return false;
+	}
+
+	private void listUsers() throws IOException {
+		BufferedReader bufferFile = new BufferedReader(new FileReader("src/server/clients.txt"));
+		String line;
+		while ((line = bufferFile.readLine()) != null)
+			users.add(line);
+		bufferFile.close();
+	}
+	private void addUserToList(String user) throws IOException {
+		BufferedWriter file = new BufferedWriter(new FileWriter("src/server/clients.txt", true));
+		if(!userExists(user)) {
+			users.add(user);
+		}
+		file.append(user + "\n");
+		file.close();
+
+		
+		new File(PATH_STORAGE_01 + user + PATH_REP).mkdirs();
+		new File(PATH_STORAGE_01 + user + PATH_PAR).mkdirs();
+		new File(PATH_STORAGE_02 + user + PATH_REP).mkdirs();
+		new File(PATH_STORAGE_02 + user + PATH_PAR).mkdirs();
 	}
 
 	private static void testAESEncryptionAndDecryption() {

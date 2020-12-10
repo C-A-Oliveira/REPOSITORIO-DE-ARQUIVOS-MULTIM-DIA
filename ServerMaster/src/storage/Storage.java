@@ -24,14 +24,13 @@ public class Storage {
 		Vector<String> lines = new Vector<String>();
 		while ((line = bfr.readLine()) != null)
 			lines.add(line);
-		
-        InetAddress serverIP = InetAddress.getByName(lines.get(0));
-        InetAddress storageIP_01 = InetAddress.getByName(lines.get(2));
-        InetAddress storageIP_02 = InetAddress.getByName(lines.get(4));
+
+		InetAddress serverIP = InetAddress.getByName(lines.get(0));
+		InetAddress storageIP_01 = InetAddress.getByName(lines.get(2));
+		InetAddress storageIP_02 = InetAddress.getByName(lines.get(4));
 		int serverPort = Integer.parseInt(lines.get(1));
-		int storagePort_01 = Integer.parseInt(lines.get(3));	
-		int storagePort_02 = Integer.parseInt(lines.get(5));		
-    	
+		int storagePort_01 = Integer.parseInt(lines.get(3));
+		int storagePort_02 = Integer.parseInt(lines.get(5));
 
 		StartStorage storage01 = new StartStorage(serverIP, serverPort, storageIP_01, storagePort_01);
 		storage01.start();
@@ -48,12 +47,14 @@ public class Storage {
 		private InetAddress storageIP;
 		private String ROOT_PATH;
 
-		public StartStorage() {}
+		public StartStorage() {
+		}
+
 		public StartStorage(InetAddress serverIP, int serverPort, InetAddress storageIP, int storagePort) {
-			this.serverIP   	= serverIP;
-			this.serverPort   	= serverPort;
-			this.storageIP   	= storageIP;
-			this.storagePort   	= storagePort;			
+			this.serverIP = serverIP;
+			this.serverPort = serverPort;
+			this.storageIP = storageIP;
+			this.storagePort = storagePort;
 		}
 
 		@Override
@@ -107,10 +108,13 @@ public class Storage {
 
 								// TESTE
 								msg.showMessage();
-								
+
 								switch (mode) {
 								case RECEBE_ARQ_SERVER:
 									// Download
+									/*
+									 * 
+									 */
 									byte[] arq = getArq(nomeArq);
 
 									Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
@@ -118,21 +122,27 @@ public class Storage {
 
 									dos.write(message);
 									break;
-									
+
 								case RECEBE_REQ_SERVER:
+									
+									/* GetFileOwner
+									 * > setSenderStoragePath
+									 * Destination
+									 * */
 
-										// TESTE
-										System.out.println("> b = " + body.length);
+									// TESTE
+									System.out.println("> b = " + body.length);
 
-										// TESTE
-										// System.out.println(">h = " + m.getHeader().getHeader().length);
+									// TESTE
+									// System.out.println(">h = " + m.getHeader().getHeader().length);
 
-										// Upload
-										writeArq(body, nomeArq);
+									// Upload
+									writeArq(body, nomeArq);
 									break;
 								default:
 									break;
 								}
+								
 							} catch (EOFException a) {
 								a.printStackTrace();
 								break;

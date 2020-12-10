@@ -110,15 +110,16 @@ class ServerImplementation {
 						//	VERIFICAR LISTA DE USARIOS 
 						// 		CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
 						// 		CRIAR DIRETORIOS PARA O CLIENT NOS STORAGES
+						String client = socketC.getInetAddress().getHostName() + "_" + socketC.getPort();
 						listUsers();
-						if (!userExists(nameC)) {
-							addUserToList(nameC);
+						if (!userExists(client)) {
+							addUserToList(client);
 						}
 						/*	 */	
 						
 
 						// create a new thread object
-						tC.setName(nameC);
+						tC.setName(client);
 						tC.start();
 
 					} catch (Exception e) {
@@ -291,6 +292,7 @@ class ServerImplementation {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				
 			} // Fim do while
 		}// Fim do metodo run
 

@@ -231,6 +231,8 @@ class ServerHandler extends Thread {
 				byte[] bNomeArq = msg.getHeader().getBNome();
 				byte[] body = msg.getBody();
 				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
+				String[] split = nomeArq.split("/");
+				nomeArq = split[split.length-1]; //Pega so o nome do arquivo, sem diretorio
 
 				if (mode == RECEBE_ARQ) {
 					writeArq(body, nomeArq);

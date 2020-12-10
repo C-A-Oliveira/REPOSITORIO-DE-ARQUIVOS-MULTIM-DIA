@@ -243,7 +243,7 @@ class ServerImplementation {
 //						m.showMessage();
 //						
 //						System.out.println("writing arq to storage: " + stdos.toString());
-//						stdos.write(message);
+//						stdos.write(m.getMessage());
 //
 //						addArqFile(m.getHeader().getNome(), ipStorage);
 //
@@ -265,13 +265,14 @@ class ServerImplementation {
 						message = m.getMessage();
 						
 						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
-
+						System.out.println("--");
 						m.showMessage();
+						System.out.println("--");
 						
 						for(int i = 0 ; i<dosAll.size();i++) {
 							stdos = dosAll.get(i);
 							System.out.println("writing arq to storage: " + stdos.toString());
-							stdos.write(message);
+							stdos.write(m.getMessage());
 							addArqFile(m.getHeader().getNome(), "REP", chaves.get(i));
 						}
 
@@ -301,20 +302,21 @@ class ServerImplementation {
 						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
 						
 						for(int i = 0 ; i<dosAll.size();i++) {
-							if(i==dosAll.size()-1) {
-								sizeCopy = body.length - (bodyDiv.length*tam); //TODO: VERIFICAR
+							if(i==dosAll.size()-1 && tam > 1) {
+								sizeCopy = (body.length - i*body.length);
 							}else {
-								sizeCopy = body.length;
+								sizeCopy = bodyDiv.length;
 							}
-							System.out.println("sizeCopy = " + sizeCopy);
-							sizeCopy = bodyDiv.length;
+							System.out.println("sizeCopy = "+ sizeCopy);
 							bodyDiv = Arrays.copyOfRange(body, contadorDiv, sizeCopy);
 							message = m.getMessage();
 							m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, bodyDiv);
+							System.out.println(">>");
 							m.showMessage();
+							System.out.println(">>");
 							stdos = dosAll.get(i);
 							System.out.println("writing arq to storage: " + stdos.toString());
-							stdos.write(message);
+							stdos.write(m.getMessage());
 							contadorDiv+= body.length/tam;
 							addArqFile(m.getHeader().getNome(), "DIV", chaves.get(i));
 						}

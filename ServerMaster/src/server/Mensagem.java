@@ -31,10 +31,12 @@ public class Mensagem {
 	
 	//TESTE
 	public void showMessage() {
-		byte[] m = this.getMessage();
+		//byte[] m = this.getMessage();
+		byte[] m = this.getBody();
 		for(int i=0;i<m.length;i++) {
 			System.out.print( m[i] + ", " );
 		}
+		System.out.println("");
 	}
 	
 	public Header getHeader() {

@@ -60,6 +60,26 @@ class ServerImplementation {
 	public ServerImplementation(String[] args) throws IOException {
 		this.main(args);
 	}
+	
+	public static String getIpSocket(Socket socket) {
+		SocketAddress socketAddress = socket.getRemoteSocketAddress();
+
+		if (socketAddress instanceof InetSocketAddress) {
+			InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
+			int port = socket.getPort();
+			if (inetAddress instanceof Inet4Address) {
+				return inetAddress.toString().substring(1) +":"+ port;
+			} else if (inetAddress instanceof Inet6Address) {
+				return inetAddress.toString().substring(1) +":"+ port;
+			} else {
+				System.err.println("Nao eh IP.");
+				return null;
+			}
+		} else {
+			System.err.println("Nao eh um socket IP.");
+			return null;
+		}
+	}
 
 	public void main(String[] args) throws IOException {
 		ClientListener clientListener = new ClientListener();
@@ -290,7 +310,7 @@ class ServerImplementation {
 						}
 						
 						
-						bNomeArq = ("REPLICADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
+						bNomeArq = ( getIpSocket(s) + "/REPLICADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
 						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 						message = m.getMessage();
 						
@@ -328,7 +348,7 @@ class ServerImplementation {
 						int contadorDiv = 0;
 						int sizeCopy;
 						
-						bNomeArq = ("PARTICIONADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
+						bNomeArq = (getIpSocket(s) +"/PARTICIONADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
 						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, new byte[0]);//Somente para uso da permissao
 						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
 						
@@ -841,25 +861,7 @@ class ServerImplementation {
 		}
 	}
 
-	public static String getIpSocket(Socket socket) {
-		SocketAddress socketAddress = socket.getRemoteSocketAddress();
 
-		if (socketAddress instanceof InetSocketAddress) {
-			InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
-			int port = socket.getPort();
-			if (inetAddress instanceof Inet4Address) {
-				return inetAddress.toString().substring(1) +":"+ port;
-			} else if (inetAddress instanceof Inet6Address) {
-				return inetAddress.toString().substring(1) +":"+ port;
-			} else {
-				System.err.println("Nao eh IP.");
-				return null;
-			}
-		} else {
-			System.err.println("Nao eh um socket IP.");
-			return null;
-		}
-	}
 
 	public static byte[] longToBytes(long x) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);

@@ -46,6 +46,8 @@ class ServerImplementation {
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
 
 	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
+	
+	public static Hashtable<String, Hashtable<Integer, Byte[]>> mapaReconstrucaoDiv = new Hashtable<>();
 
 	public ServerImplementation(String[] args) throws IOException {
 		this.main(args);
@@ -318,7 +320,7 @@ class ServerImplementation {
 							System.out.println("writing arq to storage: " + stdos.toString());
 							stdos.write(m.getMessage());
 							contadorDiv+= body.length/tam;
-							addArqFile(m.getHeader().getNome(), "DIV", chaves.get(i));
+							addArqFile(m.getHeader().getNome(), "DIV"+i, chaves.get(i));
 						}
 
 						// s.close();
@@ -503,19 +505,42 @@ class ServerImplementation {
 
 						//// String[] splitEscolha = escolhaClientDownload();
 
-						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho
-						// para evitar esse tipo de codigo?
+						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho para evitar esse tipo de codigo?
 						String ipClient = mapClientArq.get(m.getHeader().getNome());
 						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
 
 						System.out.println("writing to cliente: " + dos.toString());
-						dos.write(message);
+						int countDiv = countDiv(m.getHeader().getNome());
+						if(countDiv > 0) {
+							//Se for uma divisao
+							
+							Hashtable<Integer,Byte[]> aux = new Hashtable<>();
+							aux = mapaReconstrucaoDiv.get(m.getHeader().getNome());
+							aux.put(new Integer(qualDiv( m.getHeader().getNome(), getIpSocket(this.s) )), byteArrToByteArr(m.getBody()));
+							mapaReconstrucaoDiv.put(m.getHeader().getNome(), aux);
+							
+							int countKeys = Collections.list(aux.keys()).size() ;
+							if(countKeys == countDiv(m.getHeader().getNome())) {
+								//Pegou todas as divs
+								ArrayList<Byte> listNewBody = new ArrayList<>();
+								for(int i=0; i<countKeys;i++) {
+									for(Byte bx : aux.get(i)) {
+										listNewBody.add(bx);
+									}
+								}
+								byte[] newBody = new byte[listNewBody.size()];
+								newBody = byteObjArrToByteTypeArr(  listNewBody.toArray(new Byte[0])  );
+								m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, newBody);
+								dos.write(m.getMessage());
+							}
+							
+						}else {
+							dos.write(m.getMessage());
+						}
 					}
 
-					// System.out.println("received message from client " + this.s.getPort() + "! >>
-					// "
-					// + new String(received, StandardCharsets.UTF_8));
+					// System.out.println("received message from client " + this.s.getPort() + "! >>"+ new String(received, StandardCharsets.UTF_8));
 
 				} catch (SocketException se) {
 					se.printStackTrace();
@@ -532,8 +557,126 @@ class ServerImplementation {
 			}
 
 		}// Fim do metodo run
+		
+		public int qualDiv(String _nome, String _ip) {
+			int c = 0;
+			ArrayList<String> outIp = new ArrayList<String>();
+			try {
+				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+				String line = null;
 
+				do {
+					line = fr.readLine();
+					if (line == null) {
+						break;
+					}
 
+					String[] split = line.split(";");
+					String nomeArq = split[0];
+					String modoArq = split[1];
+					String ip = split[2];
+					
+					if (_nome == nomeArq && _ip == ip)
+					{
+						return Integer.parseInt( modoArq.substring(3) );
+					}
+				} while (line != null);
+				fr.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return c;
+			// semaforoFiles.release();
+		}
+
+		//byte[] -> Byte[]
+		public Byte[] byteArrToByteArr(byte[] _bytes) {
+			Byte[] byteObjects = new Byte[_bytes.length];
+			int i =0;
+			for(byte b: _bytes)
+			   byteObjects[i++] = b;
+			return byteObjects;
+		}
+		
+		//Byte[] -> byte[]
+		public byte[] byteObjArrToByteTypeArr(Byte[] byteObjects) {
+			byte[] bytes = new byte[byteObjects.length];
+			int j =0;
+			for(Byte b: byteObjects)
+			    bytes[j++] = b.byteValue();
+			return bytes;
+		}
+
+		public int countDiv(String arq) {
+			int c = 0;
+			ArrayList<String> outIp = new ArrayList<String>();
+			try {
+				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+				String line = null;
+
+				do {
+					line = fr.readLine();
+					if (line == null) {
+						break;
+					}
+
+					String[] split = line.split(";");
+					String nomeArq = split[0];
+					String modoArq = split[1];
+					//String ip = split[2]; //TODO: remover?
+					//String porta = split[3]; //TODO: remover?
+					//porta = "33336"; //TODO: remover?
+					if (nomeArq == arq)
+					{
+						fr.close();
+						if(modoArq.substring(0, 3) == "DIV") {
+							c++;
+						}
+					}
+				} while (line != null);
+				fr.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return c;
+			// semaforoFiles.release();
+		}
+		
+		public boolean isDiv(String arq) {
+			ArrayList<String> outIp = new ArrayList<String>();
+			try {
+				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+				String line = null;
+
+				do {
+					line = fr.readLine();
+					if (line == null) {
+						break;
+					}
+
+					String[] split = line.split(";");
+					String nomeArq = split[0];
+					String modoArq = split[1];
+					//String ip = split[2]; //TODO: remover?
+					//String porta = split[3]; //TODO: remover?
+					//porta = "33336"; //TODO: remover?
+					if (nomeArq == arq)
+					{
+						fr.close();
+						if(modoArq.substring(0, 3) == "DIV") {
+							return true;
+						}else {
+							return false;
+						}
+					}
+				} while (line != null);
+				fr.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return false;
+			// semaforoFiles.release();
+		}
 
 //		// Qual cliente deve receber o arquivo?
 //		public String[] escolhaClientDownload() {

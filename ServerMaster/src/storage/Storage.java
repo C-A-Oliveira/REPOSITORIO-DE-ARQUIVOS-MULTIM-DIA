@@ -9,124 +9,153 @@ import server.Mensagem;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.util.Vector;
 
 public class Storage {
 
-	//Constantes de cabecalho
+	// Constantes de cabecalho
 	public static final byte ENVIA_ARQ_SERVER = (byte) 0x02;
 	public static final byte RECEBE_ARQ_SERVER = (byte) 0x01;
 	public static final byte RECEBE_REQ_SERVER = (byte) 0x05;
 
 	public static void main(String[] args) throws IOException {
-		String[] argumentos = new String[4];
-		//Arquivo de configuracao (argumentos)
-		BufferedReader bfr = new BufferedReader( new FileReader("storageConf.txt"));
-		String line = bfr.readLine();
-		bfr.close();
-		line = line.replaceAll(" ", "");//Remove todos os espacos
-		String[] split = new String[4];
-		split = line.split(",");
+		BufferedReader bfr = new BufferedReader(new FileReader("storageConf.txt"));
+		String line;
+		Vector<String> lines = new Vector<String>();
+		while ((line = bfr.readLine()) != null)
+			lines.add(line);
 		
-		argumentos[0] = split[0];
-		argumentos[1] = split[1];
-		argumentos[2] = split[2];
-		argumentos[3] = split[3];
-		
-		
-		// running infinite loop for getting client request
-		int sPort = Integer.parseInt(argumentos[1]);
-		int cPort = Integer.parseInt(argumentos[3]);
+        InetAddress serverIP = InetAddress.getByName(lines.get(0));
+        InetAddress storageIP_01 = InetAddress.getByName(lines.get(2));
+        InetAddress storageIP_02 = InetAddress.getByName(lines.get(4));
+		int serverPort = Integer.parseInt(lines.get(1));
+		int storagePort_01 = Integer.parseInt(lines.get(3));	
+		int storagePort_02 = Integer.parseInt(lines.get(5));		
+    	
 
-		InetAddress sIP = InetAddress.getByName(argumentos[0]);
-		InetAddress cIP = InetAddress.getByName(argumentos[2]);
-		Socket s = new Socket(sIP, sPort, cIP, cPort);
-		
-//		byte[] cADDR = s.getInetAddress().getAddress();
-//		String name = String.valueOf(cADDR[0]) + "." + String.valueOf(cADDR[1]) + "." + String.valueOf(cADDR[2])
-//				+ "." + String.valueOf(cADDR[3]) + ":" + s.getPort();
+		StartStorage storage01 = new StartStorage(serverIP, serverPort, storageIP_01, storagePort_01);
+		storage01.start();
+		StartStorage storage02 = new StartStorage(serverIP, serverPort, storageIP_02, storagePort_02);
+		storage02.start();
 
-		System.out.println("A new server is connected : " + s);
-		
-		// obtaining input and out streams
-		DataInputStream dis = new DataInputStream(s.getInputStream());
-		DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-		
-		boolean loop = true;
-		while (loop) {
+	}
 
+	static class StartStorage extends Thread {
+
+		private int serverPort;
+		private int storagePort;
+		private InetAddress serverIP;
+		private InetAddress storageIP;
+		private String ROOT_PATH;
+
+		public StartStorage() {}
+		public StartStorage(InetAddress serverIP, int serverPort, InetAddress storageIP, int storagePort) {
+			this.serverIP   	= serverIP;
+			this.serverPort   	= serverPort;
+			this.storageIP   	= storageIP;
+			this.storagePort   	= storagePort;			
+		}
+
+		@Override
+		public void run() {
+			// establish the connection
+			Socket s;
 			try {
-				// READ
-				while (true) {
+				s = new Socket(serverIP, serverPort, storageIP, storagePort);
+
+				this.setName("STORAGE" + storageIP.toString() + ":" + storagePort);
+
+				System.out.println("A new server is connected : " + s);
+
+				// obtaining input and out streams
+				DataInputStream dis = new DataInputStream(s.getInputStream());
+				DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+
+				boolean loop = true;
+				while (loop) {
+
 					try {
-						// READING
-						
-						int lenght = dis.readInt();
+						// READ
+						while (true) {
+							try {
+								// READING
 
-						byte[] received = new byte[lenght];
-						// Reconstroi o int lido
-						byte[] lb = intToBytes(lenght);
-						for (int i = 0; i < Integer.BYTES; i++) {
-							received[i] = lb[i];
-						}
+								int lenght = dis.readInt();
 
-						byte[] buffer = new byte[lenght - Integer.BYTES];
-						dis.readFully(buffer);
-						int c = 0;
-						for (int i = Integer.BYTES; i < lenght; i++) {
-							received[i] = buffer[c];
-							c++;
-						}
-						c = 0;
+								byte[] received = new byte[lenght];
+								// Reconstroi o int lido
+								byte[] lb = intToBytes(lenght);
+								for (int i = 0; i < Integer.BYTES; i++) {
+									received[i] = lb[i];
+								}
 
-						Mensagem msg = new Mensagem(received);
-						byte mode = msg.getHeader().getMode();
-						byte[] user = msg.getHeader().getBUser();
-						byte[] bNomeArq = msg.getHeader().getBNome();
-						byte[] body = msg.getBody();
-						String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
-						
-						//TESTE
-						msg.showMessage();
-						
-						if (mode == RECEBE_REQ_SERVER) {
-							//Download
-							byte[] arq = getArq(nomeArq);
+								byte[] buffer = new byte[lenght - Integer.BYTES];
+								dis.readFully(buffer);
+								int c = 0;
+								for (int i = Integer.BYTES; i < lenght; i++) {
+									received[i] = buffer[c];
+									c++;
+								}
+								c = 0;
 
-							Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
-							byte[] message = m.getMessage();
+								Mensagem msg = new Mensagem(received);
+								byte mode = msg.getHeader().getMode();
+								byte[] user = msg.getHeader().getBUser();
+								byte[] bNomeArq = msg.getHeader().getBNome();
+								byte[] body = msg.getBody();
+								String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 
-							dos.write(message);
-						} else {
-							if (mode == RECEBE_ARQ_SERVER) {
+								// TESTE
+								msg.showMessage();
 								
-								//TESTE
-								System.out.println("> b = "+body.length);
-								
-								//TESTE
-								//System.out.println(">h = " + m.getHeader().getHeader().length);
-								
-								//Upload
-								writeArq(body, nomeArq);
+								switch (mode) {
+								case RECEBE_ARQ_SERVER:
+									// Download
+									byte[] arq = getArq(nomeArq);
+
+									Mensagem m = new Mensagem(ENVIA_ARQ_SERVER, user, bNomeArq, arq);
+									byte[] message = m.getMessage();
+
+									dos.write(message);
+									break;
+									
+								case RECEBE_REQ_SERVER:
+
+										// TESTE
+										System.out.println("> b = " + body.length);
+
+										// TESTE
+										// System.out.println(">h = " + m.getHeader().getHeader().length);
+
+										// Upload
+										writeArq(body, nomeArq);
+									break;
+								default:
+									break;
+								}
+							} catch (EOFException a) {
+								a.printStackTrace();
+								break;
+							} catch (IOException e) {
+								e.printStackTrace();
 							}
+
 						}
-					}catch (EOFException a) {
-						a.printStackTrace();
-						break;
-					} catch (IOException e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
-
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
+				s.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
+			// ss.close();
 		}
-		s.close();
-		//ss.close();
 	}
 
 	// ===================== METODOS de arquivo ===============================
-	
+
 	// retorna os bytes[] de um arquivo especificado
 	private static byte[] getArq(String _nome) {
 		byte[] arq = null;
@@ -167,9 +196,10 @@ public class Storage {
 		}
 
 	}
-	
-	// ===================== Metodo utiliario ========================================
-	
+
+	// ===================== Metodo utiliario
+	// ========================================
+
 	// Retorna os bytes[] de um int
 	public static byte[] intToBytes(int i) {
 		byte[] result = new byte[4];

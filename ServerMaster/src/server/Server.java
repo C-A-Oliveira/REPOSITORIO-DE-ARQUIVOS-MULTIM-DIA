@@ -331,18 +331,24 @@ class ServerImplementation {
 						if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
 							m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
 							message = m.getMessage();
-
+								
 							// Escolha do storage
 							splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
+							String[] ipsAllStorages = Collections.list(mapDOSStorage.keys()).toArray(new String[0]);
 							ipStorage = splitEscolha[0];
 
 							stdos = null;
-							stdos = mapDOSStorage.get(ipStorage);
-
 							mapClientArq.put(m.getHeader().getNome(), this.ipClient);
-
 							System.out.println("writing req to storage: " + stdos.toString());
-							stdos.write(message);
+							if ( isDiv(m.getHeader().getNome()) ) {
+								for(int i=0;i<ipsAllStorages.length;i++) {
+									stdos = mapDOSStorage.get(ipsAllStorages[i]);
+									stdos.write(message);	
+								}
+							}else {
+								stdos = mapDOSStorage.get(ipStorage);
+								stdos.write(message);
+							}
 							break;
 						}
 					}
@@ -451,6 +457,77 @@ class ServerImplementation {
 			return outIp.toArray(new String[0]);
 		}
 
+	}
+	
+	public int countDiv(String arq) {
+		int c = 0;
+		ArrayList<String> outIp = new ArrayList<String>();
+		try {
+			BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+			String line = null;
+
+			do {
+				line = fr.readLine();
+				if (line == null) {
+					break;
+				}
+
+				String[] split = line.split(";");
+				String nomeArq = split[0];
+				String modoArq = split[1];
+				//String ip = split[2]; //TODO: remover?
+				//String porta = split[3]; //TODO: remover?
+				//porta = "33336"; //TODO: remover?
+				if (nomeArq == arq)
+				{
+					fr.close();
+					if(modoArq.substring(0, 3) == "DIV") {
+						c++;
+					}
+				}
+			} while (line != null);
+			fr.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return c;
+		// semaforoFiles.release();
+	}
+	
+	public boolean isDiv(String arq) {
+		ArrayList<String> outIp = new ArrayList<String>();
+		try {
+			BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
+			String line = null;
+
+			do {
+				line = fr.readLine();
+				if (line == null) {
+					break;
+				}
+
+				String[] split = line.split(";");
+				String nomeArq = split[0];
+				String modoArq = split[1];
+				//String ip = split[2]; //TODO: remover?
+				//String porta = split[3]; //TODO: remover?
+				//porta = "33336"; //TODO: remover?
+				if (nomeArq == arq)
+				{
+					fr.close();
+					if(modoArq.substring(0, 3) == "DIV") {
+						return true;
+					}else {
+						return false;
+					}
+				}
+			} while (line != null);
+			fr.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+		// semaforoFiles.release();
 	}
 
 // StorageHandler class
@@ -605,77 +682,6 @@ class ServerImplementation {
 			for(Byte b: byteObjects)
 			    bytes[j++] = b.byteValue();
 			return bytes;
-		}
-
-		public int countDiv(String arq) {
-			int c = 0;
-			ArrayList<String> outIp = new ArrayList<String>();
-			try {
-				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
-				String line = null;
-
-				do {
-					line = fr.readLine();
-					if (line == null) {
-						break;
-					}
-
-					String[] split = line.split(";");
-					String nomeArq = split[0];
-					String modoArq = split[1];
-					//String ip = split[2]; //TODO: remover?
-					//String porta = split[3]; //TODO: remover?
-					//porta = "33336"; //TODO: remover?
-					if (nomeArq == arq)
-					{
-						fr.close();
-						if(modoArq.substring(0, 3) == "DIV") {
-							c++;
-						}
-					}
-				} while (line != null);
-				fr.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return c;
-			// semaforoFiles.release();
-		}
-		
-		public boolean isDiv(String arq) {
-			ArrayList<String> outIp = new ArrayList<String>();
-			try {
-				BufferedReader fr = new BufferedReader(new FileReader(nomeArqFiles));
-				String line = null;
-
-				do {
-					line = fr.readLine();
-					if (line == null) {
-						break;
-					}
-
-					String[] split = line.split(";");
-					String nomeArq = split[0];
-					String modoArq = split[1];
-					//String ip = split[2]; //TODO: remover?
-					//String porta = split[3]; //TODO: remover?
-					//porta = "33336"; //TODO: remover?
-					if (nomeArq == arq)
-					{
-						fr.close();
-						if(modoArq.substring(0, 3) == "DIV") {
-							return true;
-						}else {
-							return false;
-						}
-					}
-				} while (line != null);
-				fr.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return false;
-			// semaforoFiles.release();
 		}
 
 //		// Qual cliente deve receber o arquivo?

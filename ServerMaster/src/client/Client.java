@@ -28,7 +28,7 @@ public class Client {
 		try {
 			Scanner scn = new Scanner(System.in);
 			String[] argumentos = new String[4];
-			SymmetricCryptoManager sKeyManager = new SymmetricCryptoManager();
+			SymmetricCryptoManager sCryptoManager = new SymmetricCryptoManager();
 
 			//Arquivo de configuracao (argumentos)
 			BufferedReader bfr = new BufferedReader( new FileReader("clientConf.txt"));
@@ -58,7 +58,7 @@ public class Client {
 			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
 			// Thread
-			Thread t = new ServerHandler(s, dis, dos);
+			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);
 			byte[] address = sIP.getAddress();
 			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
 					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
@@ -95,8 +95,7 @@ public class Client {
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = getArq(pathArq.toString());
-					bytes = sKeyManager.encryptData(bytes);
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
 					break;
 				case "divisao":
 					pathArq = null;
@@ -104,8 +103,7 @@ public class Client {
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = getArq(pathArq.toString());
-					bytes = sKeyManager.encryptData(bytes);
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
 					break;
 				case "download":
 					modo = ENVIA_REQ;
@@ -195,16 +193,18 @@ class ServerHandler extends Thread {
 	final DataInputStream dis;
 	final DataOutputStream dos;
 	final Socket s;
+	final SymmetricCryptoManager sCryptoManager;
 
 	// Constantes do cabecalho (modo)
 	//public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
 
-	public ServerHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+	public ServerHandler(Socket s, DataInputStream dis, DataOutputStream dos, SymmetricCryptoManager sCryptoManager) {
 		this.s = s;
 		this.dis = dis;
 		this.dos = dos;
+		this.sCryptoManager = sCryptoManager;
 	}
 
 	@Override
@@ -233,7 +233,7 @@ class ServerHandler extends Thread {
 				byte mode = msg.getHeader().getMode();
 				// byte[] bUser = msg.getHeader().getBUser();
 				byte[] bNomeArq = msg.getHeader().getBNome();
-				byte[] body = msg.getBody();
+				byte[] body = sCryptoManager.decryptData(msg.getBody());
 				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 				String[] split = nomeArq.split("/");
 				nomeArq = split[split.length-1]; //Pega so o nome do arquivo, sem diretorio

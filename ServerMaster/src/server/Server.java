@@ -18,7 +18,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 
-
 class ServerImplementation {
 
 	// public static final byte RECEBE_ARQ_CLIENT = (byte) 0x00;
@@ -34,7 +33,7 @@ class ServerImplementation {
 	public static String PATH_REP = "\\REPLICADO";
 	public static String PATH_PAR = "\\PARTICIONADO";
 
-	//TODO: semaforos
+	// TODO: semaforos
 	public static final String nomeArqPermissao = "arqPermissao.txt";
 	public static final Semaphore semaforoPermissao = new Semaphore(1);
 
@@ -56,9 +55,9 @@ class ServerImplementation {
 	public static Hashtable<String, DataOutputStream> mapDOSClient = new Hashtable<>();
 
 	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
-	
+
 	public static Hashtable<String, Hashtable<Integer, Byte[]>> mapaReconstrucaoDiv = new Hashtable<>();
-	
+
 	public KeyPair keyPair;
 
 	public ServerImplementation(String[] args) throws IOException {
@@ -68,9 +67,9 @@ class ServerImplementation {
 	public void main(String[] args) throws IOException {
 		ClientListener clientListener = new ClientListener();
 		StorageListener storageListener = new StorageListener();
-		
+
 		generateKeyPair();
-	
+
 		listUsers();
 
 		clientListener.start();
@@ -78,9 +77,9 @@ class ServerImplementation {
 		storageListener.start();
 		storageListener.setName("StorageListenerThread");
 	}
-	
+
 	class ClientListener extends Thread {
-		
+
 		public ClientListener() {
 
 		}
@@ -103,8 +102,8 @@ class ServerImplementation {
 
 						if (socketClient != null) {
 							System.out.println("A new client is trying to connect : " + socketClient);
-						}						
-												
+						}
+
 						// obtaining input and out streams
 						DataInputStream disC = new DataInputStream(socketClient.getInputStream());
 						DataOutputStream dosC = new DataOutputStream(socketClient.getOutputStream());
@@ -113,31 +112,32 @@ class ServerImplementation {
 						byte[] SPubK = keyPair.getPublic().getEncoded();
 						dosC.writeUTF(Base64.getEncoder().encodeToString(SPubK));
 						byte[] ClientEncodedKey = Base64.getDecoder().decode(disC.readUTF());
-						byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(ClientEncodedKey, keyPair.getPrivate());
-						
+						byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(ClientEncodedKey,
+								keyPair.getPrivate());
+
 						// save the decryptedSymmetricKey for the connected client
 						SymmetricCryptoManager sCryptoManager = new SymmetricCryptoManager(decryptedSymmetricKey);
-						
+
 //						// Test receiving encrypted data
 //					    byte[] testBytes = Base64.getDecoder().decode(disC.readUTF());
 //					    String msg = new String(sCryptoManager.decryptData(testBytes));
 //					    System.out.println(msg);
-						
+
 						mapDOSClient.put(getIpSocket(socketClient), dosC);
 
 						Thread tC = new ClientHandler(socketClient, sCryptoManager);
 
-						//	VERIFICAR LISTA DE USARIOS 
-						// 		CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
-						// 		CRIAR DIRETORIOS PARA O CLIENT NOS STORAGES
+						// VERIFICAR LISTA DE USARIOS
+						// CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
+						// CRIAR DIRETORIOS PARA O CLIENT NOS STORAGES
 						String client = socketClient.getInetAddress().getHostName() + "_" + socketClient.getPort();
 						listUsers();
 						if (!userExists(client)) {
 							addUserToList(client);
 						}
-						
+
 						// create a new thread object
-						tC.setName("CLIENT/"+client);						
+						tC.setName("CLIENT/" + client);
 						tC.start();
 
 					} catch (Exception e) {
@@ -153,53 +153,7 @@ class ServerImplementation {
 		}
 	}
 
-	class StorageListener extends Thread {
-
-		public StorageListener() {
-		}
-
-		@Override
-		public void run() {
-			try {
-				ServerSocket sst = new ServerSocket(33335);
-
-				boolean loop = true;
-				while (loop) {
-					Socket socketSt = null;
-					try {
-						socketSt = sst.accept();
-						byte[] stADDR = socketSt.getInetAddress().getAddress();
-						String nameSt = String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "."
-								+ String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]) + ":"
-								+ socketSt.getPort();
-						if (socketSt != null) {
-							System.out.println("A new storage is connected : " + socketSt);
-						}
-
-						DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
-						DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
-
-						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
-
-						// System.out.println("Assigning new thread storage " + nameSt);
-						Thread tSt = new StorageHandler(disSt, socketSt);
-
-						tSt.setName("STORAGE/"+nameSt);
-						tSt.start();
-					} catch (Exception e) {
-						e.printStackTrace();
-						System.out.println("Socket Closed");
-						socketSt.close();
-					}
-				}
-				sst.close();
-			} catch (IOException io) {
-				io.printStackTrace();
-			}
-		}
-	}
-
-// ClientHandler class
+	// ClientHandler class
 	class ClientHandler extends Thread {
 		DataOutputStream dos;
 		DataInputStream dis;
@@ -267,71 +221,70 @@ class ServerImplementation {
 					DataOutputStream storageDataOutput = null;
 					ArrayList<DataOutputStream> dosAll;
 					ArrayList<String> chaves;
-					
+
 					// Logica
 					switch (mode) {
 					case RECEBE_ARQ_REP_CLIENT:
 						// -- UPLOAD REPLICADO: Client (bytes arq) -> Server -> Storage
 
 						storageDataOutput = null;
-						//storageDataOutput = mapDOSStorage.get(ipStorage);
-						//TODO: isso nao era ideal ter nessa parte do codigo?
+						// storageDataOutput = mapDOSStorage.get(ipStorage);
+						// TODO: isso nao era ideal ter nessa parte do codigo?
 						dosAll = new ArrayList<>();
-						chaves = Collections.list( mapDOSStorage.keys() ) ;
-						for(int i=0; i<chaves.size();i++) {
+						chaves = Collections.list(mapDOSStorage.keys());
+						for (int i = 0; i < chaves.size(); i++) {
 							dosAll.add(mapDOSStorage.get(chaves.get(i)));
 						}
-						
-						
-						bNomeArq = ("REPLICADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
+
+						bNomeArq = ("REPLICADO/" + nomeArq).getBytes(StandardCharsets.UTF_8);
 						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
 						message = m.getMessage();
-						
-						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
+
+						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer
+																			// download desse arquivo
 						System.out.println("--");
 						m.showMessage();
 						System.out.println("--");
-						
-						for(int i = 0 ; i<dosAll.size();i++) {
+
+						for (int i = 0; i < dosAll.size(); i++) {
 							storageDataOutput = dosAll.get(i);
 							System.out.println("writing arq to storage: " + storageDataOutput.toString());
 							storageDataOutput.write(m.getMessage());
 							addArqFile(m.getHeader().getNome(), "REP", chaves.get(i));
 						}
 
-						
-
 						// s.close();
 						break;
 					case RECEBE_ARQ_DIV_CLIENT:
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
-
 						storageDataOutput = null;
-						//storageDataOutput = mapDOSStorage.get(ipStorage);
-						//TODO: isso nao era ideal ter nessa parte do codigo?
+						// storageDataOutput = mapDOSStorage.get(ipStorage);
+						// TODO: isso nao era ideal ter nessa parte do codigo?
 						dosAll = new ArrayList<>();
-						chaves = Collections.list( mapDOSStorage.keys() ) ;
-						for(int i=0; i<chaves.size();i++) {
+						chaves = Collections.list(mapDOSStorage.keys());
+						for (int i = 0; i < chaves.size(); i++) {
 							dosAll.add(mapDOSStorage.get(chaves.get(i)));
 						}
 						int tam = dosAll.size();
 
-						byte[] bodyDiv = new byte[body.length/tam];
+						byte[] bodyDiv = new byte[body.length / tam];
 						int contadorDiv = 0;
 						int sizeCopy;
-						
-						bNomeArq = ("PARTICIONADO/"+nomeArq).getBytes(StandardCharsets.UTF_8);
-						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, new byte[0]);//Somente para uso da permissao
-						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer download desse arquivo
-						
-						for(int i = 0 ; i<dosAll.size();i++) {
-							if(i==dosAll.size()-1 && tam > 1) {
-								sizeCopy = (body.length - i*body.length);
-							}else {
+
+						bNomeArq = ("PARTICIONADO/" + nomeArq).getBytes(StandardCharsets.UTF_8);
+						m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, new byte[0]);// Somente para uso da
+																							// permissao
+						addPermissaoClient(m.getHeader().getNome(), user); // Adiciona permissao pro usuario fazer
+																			// download desse arquivo
+
+						for (int i = 0; i < dosAll.size(); i++) {
+							if (i == dosAll.size() - 1 && tam > 1) {
+								sizeCopy = (body.length - i * body.length);
+							} else {
 								sizeCopy = bodyDiv.length;
 							}
-							System.out.println("sizeCopy = "+ sizeCopy);
+							System.out.println("sizeCopy = " + sizeCopy);
 							bodyDiv = Arrays.copyOfRange(body, contadorDiv, sizeCopy);
 							message = m.getMessage();
 							m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, bodyDiv);
@@ -341,8 +294,8 @@ class ServerImplementation {
 							storageDataOutput = dosAll.get(i);
 							System.out.println("writing arq to storage: " + storageDataOutput.toString());
 							storageDataOutput.write(m.getMessage());
-							contadorDiv+= body.length/tam;
-							addArqFile(m.getHeader().getNome(), "DIV"+i, chaves.get(i));
+							contadorDiv += body.length / tam;
+							addArqFile(m.getHeader().getNome(), "DIV" + i, chaves.get(i));
 						}
 
 						// s.close();
@@ -353,23 +306,23 @@ class ServerImplementation {
 						if (userTemAcesso(user, new String(body, StandardCharsets.UTF_8))) {
 							m = new Mensagem(ENVIA_REQ_STORAGE, bUser, bNomeArq, body);
 							message = m.getMessage();
-								
+
 							// Escolha do storage
 							splitEscolha = escolhaStorageDownload(m.getHeader().getNome());
 							String[] ipsAllStorages = Collections.list(mapDOSStorage.keys()).toArray(new String[0]);
 							ipStorage = splitEscolha[0];
 
 							mapClientArq.put(m.getHeader().getNome(), this.ipClient);
-							if ( isDiv(m.getHeader().getNome()) ) {
-								for(int i=0;i<ipsAllStorages.length;i++) {
+							if (isDiv(m.getHeader().getNome())) {
+								for (int i = 0; i < ipsAllStorages.length; i++) {
 									storageDataOutput = mapDOSStorage.get(ipsAllStorages[i]);
-									storageDataOutput.write(message);	
+									storageDataOutput.write(message);
 								}
-							}else {
+							} else {
 								storageDataOutput = mapDOSStorage.get(ipStorage);
 								storageDataOutput.write(message);
 							}
-							//storageDataOutput.close();
+							// storageDataOutput.close();
 							break;
 						}
 					}
@@ -385,10 +338,10 @@ class ServerImplementation {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				
+
 			} // Fim do while
 		}// Fim do metodo run
-		
+
 		// Adiciona uma nova linha no arquivo de permissoes
 		protected void addPermissaoClient(String arq, long user) {
 			// try {
@@ -410,7 +363,7 @@ class ServerImplementation {
 //				e1.printStackTrace();
 //			}
 		}
-		
+
 		public long bytesToLong(byte[] bytes) {
 			ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 			buffer.put(bytes);
@@ -464,23 +417,23 @@ class ServerImplementation {
 					String modoArq = split[1];
 					String ip = split[2];
 					String porta = split[3];
-					porta = "33336"; //TODO: remover?
-					if (nomeArq == arq) //CONSIDERAR: AND modoArq = "DIV"?
+					porta = "33336"; // TODO: remover?
+					if (nomeArq == arq) // CONSIDERAR: AND modoArq = "DIV"?
 					{
-						outIp.add(ip+":"+porta);
+						outIp.add(ip + ":" + porta);
 					}
 				} while (line != null);
 				fr.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 			// semaforoFiles.release();
 			return outIp.toArray(new String[0]);
 		}
 
 	}
-	
+
 	public int countDiv(String arq) {
 		int c = 0;
 		ArrayList<String> outIp = new ArrayList<String>();
@@ -497,13 +450,12 @@ class ServerImplementation {
 				String[] split = line.split(";");
 				String nomeArq = split[0];
 				String modoArq = split[1];
-				//String ip = split[2]; //TODO: remover?
-				//String porta = split[3]; //TODO: remover?
-				//porta = "33336"; //TODO: remover?
-				if (nomeArq == arq)
-				{
+				// String ip = split[2]; //TODO: remover?
+				// String porta = split[3]; //TODO: remover?
+				// porta = "33336"; //TODO: remover?
+				if (nomeArq == arq) {
 					fr.close();
-					if(modoArq.substring(0, 3) == "DIV") {
+					if (modoArq.substring(0, 3) == "DIV") {
 						c++;
 					}
 				}
@@ -515,7 +467,7 @@ class ServerImplementation {
 		return c;
 		// semaforoFiles.release();
 	}
-	
+
 	public boolean isDiv(String arq) {
 		ArrayList<String> outIp = new ArrayList<String>();
 		try {
@@ -531,15 +483,14 @@ class ServerImplementation {
 				String[] split = line.split(";");
 				String nomeArq = split[0];
 				String modoArq = split[1];
-				//String ip = split[2]; //TODO: remover?
-				//String porta = split[3]; //TODO: remover?
-				//porta = "33336"; //TODO: remover?
-				if (nomeArq == arq)
-				{
+				// String ip = split[2]; //TODO: remover?
+				// String porta = split[3]; //TODO: remover?
+				// porta = "33336"; //TODO: remover?
+				if (nomeArq == arq) {
 					fr.close();
-					if(modoArq.substring(0, 3) == "DIV") {
+					if (modoArq.substring(0, 3) == "DIV") {
 						return true;
-					}else {
+					} else {
 						return false;
 					}
 				}
@@ -552,7 +503,53 @@ class ServerImplementation {
 		// semaforoFiles.release();
 	}
 
-// StorageHandler class
+	class StorageListener extends Thread {
+
+		public StorageListener() {
+		}
+
+		@Override
+		public void run() {
+			try {
+				ServerSocket sst = new ServerSocket(33335);
+
+				boolean loop = true;
+				while (loop) {
+					Socket socketSt = null;
+					try {
+						socketSt = sst.accept();
+						byte[] stADDR = socketSt.getInetAddress().getAddress();
+						String nameSt = String.valueOf(stADDR[0]) + "." + String.valueOf(stADDR[1]) + "."
+								+ String.valueOf(stADDR[2]) + "." + String.valueOf(stADDR[3]) + ":"
+								+ socketSt.getPort();
+						if (socketSt != null) {
+							System.out.println("A new storage is connected : " + socketSt);
+						}
+
+						DataInputStream disSt = new DataInputStream(socketSt.getInputStream());
+						DataOutputStream dosSt = new DataOutputStream(socketSt.getOutputStream());
+
+						mapDOSStorage.put(getIpSocket(socketSt), dosSt);
+
+						// System.out.println("Assigning new thread storage " + nameSt);
+						Thread tSt = new StorageHandler(disSt, socketSt);
+
+						tSt.setName("STORAGE/" + nameSt);
+						tSt.start();
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Socket Closed");
+						socketSt.close();
+					}
+				}
+				sst.close();
+			} catch (IOException io) {
+				io.printStackTrace();
+			}
+		}
+	}
+
+	// StorageHandler class
 	class StorageHandler extends Thread {
 		final DataInputStream dis;
 		final Socket s;
@@ -604,42 +601,45 @@ class ServerImplementation {
 
 						//// String[] splitEscolha = escolhaClientDownload();
 
-						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho para evitar esse tipo de codigo?
+						// TODO: Nao eh ideal pegar ip pelo nome do arquivo. Adicionar IP ao cabecalho
+						// para evitar esse tipo de codigo?
 						String ipClient = mapClientArq.get(m.getHeader().getNome());
 						// String portClient = splitEscolha[1];
 						DataOutputStream dos = mapDOSClient.get(ipClient);
 
 						System.out.println("writing to cliente: " + dos.toString());
 						int countDiv = countDiv(m.getHeader().getNome());
-						if(countDiv > 0) {
-							//Se for uma divisao
-							
-							Hashtable<Integer,Byte[]> aux = new Hashtable<>();
+						if (countDiv > 0) {
+							// Se for uma divisao
+
+							Hashtable<Integer, Byte[]> aux = new Hashtable<>();
 							aux = mapaReconstrucaoDiv.get(m.getHeader().getNome());
-							aux.put(new Integer(qualDiv( m.getHeader().getNome(), getIpSocket(this.s) )), byteArrToByteArr(m.getBody()));
+							aux.put(new Integer(qualDiv(m.getHeader().getNome(), getIpSocket(this.s))),
+									byteArrToByteArr(m.getBody()));
 							mapaReconstrucaoDiv.put(m.getHeader().getNome(), aux);
-							
-							int countKeys = Collections.list(aux.keys()).size() ;
-							if(countKeys == countDiv(m.getHeader().getNome())) {
-								//Pegou todas as divs
+
+							int countKeys = Collections.list(aux.keys()).size();
+							if (countKeys == countDiv(m.getHeader().getNome())) {
+								// Pegou todas as divs
 								ArrayList<Byte> listNewBody = new ArrayList<>();
-								for(int i=0; i<countKeys;i++) {
-									for(Byte bx : aux.get(i)) {
+								for (int i = 0; i < countKeys; i++) {
+									for (Byte bx : aux.get(i)) {
 										listNewBody.add(bx);
 									}
 								}
 								byte[] newBody = new byte[listNewBody.size()];
-								newBody = byteObjArrToByteTypeArr(  listNewBody.toArray(new Byte[0])  );
+								newBody = byteObjArrToByteTypeArr(listNewBody.toArray(new Byte[0]));
 								m = new Mensagem(ENVIA_ARQ_CLIENT, user, bNomeArq, newBody);
 								dos.write(m.getMessage());
 							}
-							
-						}else {
+
+						} else {
 							dos.write(m.getMessage());
 						}
 					}
 
-					// System.out.println("received message from client " + this.s.getPort() + "! >>"+ new String(received, StandardCharsets.UTF_8));
+					// System.out.println("received message from client " + this.s.getPort() + "!
+					// >>"+ new String(received, StandardCharsets.UTF_8));
 
 				} catch (SocketException se) {
 					se.printStackTrace();
@@ -656,7 +656,7 @@ class ServerImplementation {
 			}
 
 		}// Fim do metodo run
-		
+
 		public int qualDiv(String _nome, String _ip) {
 			int c = 0;
 			ArrayList<String> outIp = new ArrayList<String>();
@@ -674,10 +674,9 @@ class ServerImplementation {
 					String nomeArq = split[0];
 					String modoArq = split[1];
 					String ip = split[2];
-					
-					if (_nome == nomeArq && _ip == ip)
-					{
-						return Integer.parseInt( modoArq.substring(3) );
+
+					if (_nome == nomeArq && _ip == ip) {
+						return Integer.parseInt(modoArq.substring(3));
 					}
 				} while (line != null);
 				fr.close();
@@ -688,21 +687,21 @@ class ServerImplementation {
 			// semaforoFiles.release();
 		}
 
-		//byte[] -> Byte[]
+		// byte[] -> Byte[]
 		public Byte[] byteArrToByteArr(byte[] _bytes) {
 			Byte[] byteObjects = new Byte[_bytes.length];
-			int i =0;
-			for(byte b: _bytes)
-			   byteObjects[i++] = b;
+			int i = 0;
+			for (byte b : _bytes)
+				byteObjects[i++] = b;
 			return byteObjects;
 		}
-		
-		//Byte[] -> byte[]
+
+		// Byte[] -> byte[]
 		public byte[] byteObjArrToByteTypeArr(Byte[] byteObjects) {
 			byte[] bytes = new byte[byteObjects.length];
-			int j =0;
-			for(Byte b: byteObjects)
-			    bytes[j++] = b.byteValue();
+			int j = 0;
+			for (Byte b : byteObjects)
+				bytes[j++] = b.byteValue();
 			return bytes;
 		}
 
@@ -720,7 +719,8 @@ class ServerImplementation {
 
 	}// Fim de storage handler
 
-	// ======================== METODOS de ServerImplementation=============================
+	// ======================== METODOS de
+	// ServerImplementation=============================
 	public Boolean userTemAcesso(long user, String arq) {
 		boolean ok = false;
 
@@ -766,9 +766,10 @@ class ServerImplementation {
 	}
 
 	public boolean userExists(String client) {
-		for(String user : users)
-			if(user.compareTo(client) == 0) return true;
-			
+		for (String user : users)
+			if (user.compareTo(client) == 0)
+				return true;
+
 		return false;
 	}
 
@@ -779,16 +780,15 @@ class ServerImplementation {
 			users.add(line);
 		bufferFile.close();
 	}
-	
+
 	private void addUserToList(String user) throws IOException {
 		BufferedWriter file = new BufferedWriter(new FileWriter("src/server/clients.txt", true));
-		if(!userExists(user)) {
+		if (!userExists(user)) {
 			users.add(user);
 		}
 		file.append(user + "\n");
 		file.close();
 
-		
 		new File(PATH_STORAGE_01 + user + PATH_REP).mkdirs();
 		new File(PATH_STORAGE_01 + user + PATH_PAR).mkdirs();
 		new File(PATH_STORAGE_02 + user + PATH_REP).mkdirs();
@@ -798,7 +798,7 @@ class ServerImplementation {
 	private void generateKeyPair() {
 		keyPair = AsymmetricCryptoManager.generateKeyPair();
 	}
-	
+
 	private static void testAESEncryptionAndDecryption() {
 		try {
 
@@ -818,7 +818,7 @@ class ServerImplementation {
 			// Server decode symmetric key
 			byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(encryptedSymmetricKey,
 					keyPair.getPrivate());
-			
+
 			System.out.println(encodedKey.length);
 			System.out.println(decryptedSymmetricKey.length);
 
@@ -847,9 +847,9 @@ class ServerImplementation {
 			InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
 			int port = socket.getPort();
 			if (inetAddress instanceof Inet4Address) {
-				return inetAddress.toString().substring(1) +":"+ port;
+				return inetAddress.toString().substring(1) + ":" + port;
 			} else if (inetAddress instanceof Inet6Address) {
-				return inetAddress.toString().substring(1) +":"+ port;
+				return inetAddress.toString().substring(1) + ":" + port;
 			} else {
 				System.err.println("Nao eh IP.");
 				return null;

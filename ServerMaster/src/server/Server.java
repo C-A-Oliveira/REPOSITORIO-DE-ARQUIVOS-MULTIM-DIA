@@ -56,6 +56,8 @@ class ServerImplementation {
 	public static Hashtable<String, String> mapClientArq = new Hashtable<>();
 	
 	public static Hashtable<String, Hashtable<Integer, Byte[]>> mapaReconstrucaoDiv = new Hashtable<>();
+	
+	public KeyPair keyPair;
 
 	public ServerImplementation(String[] args) throws IOException {
 		this.main(args);
@@ -65,11 +67,14 @@ class ServerImplementation {
 		ClientListener clientListener = new ClientListener();
 		StorageListener storageListener = new StorageListener();
 		
+		generateKeyPair();
 		listUsers();
 
 		clientListener.start();
 		storageListener.start();
 	}
+	
+	
 
 	class ClientListener extends Thread {
 		public ClientListener() {
@@ -788,6 +793,11 @@ class ServerImplementation {
 			users.add(line);
 		bufferFile.close();
 	}
+	
+	private void generateKeyPair() {
+		keyPair = AsymmetricCryptoManager.generateKeyPair();
+	}
+	
 	private void addUserToList(String user) throws IOException {
 		BufferedWriter file = new BufferedWriter(new FileWriter("src/server/clients.txt", true));
 		if(!userExists(user)) {

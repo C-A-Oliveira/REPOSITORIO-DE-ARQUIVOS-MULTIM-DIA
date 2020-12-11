@@ -74,10 +74,13 @@ class ServerImplementation {
 		listUsers();
 
 		clientListener.start();
+		clientListener.setName("ClientListenerThread");
 		storageListener.start();
+		storageListener.setName("StorageListenerThread");
 	}
 	
 	class ClientListener extends Thread {
+		
 		public ClientListener() {
 
 		}
@@ -87,35 +90,24 @@ class ServerImplementation {
 			try {
 //				testAESEncryptionAndDecryption();
 
-				// server is listening on port 33333 and 33335
+				// server is listening on port 33333
 				ServerSocket ssc = new ServerSocket(33333);
 
 				// running infinite loop for getting client request
 				boolean loop = true;
 				while (loop) {
-					Socket socketC = null;
+					Socket socketClient = null;
 
 					try {
+						socketClient = ssc.accept();
 
-						socketC = ssc.accept();
-
-						byte[] ccADDR = socketC.getInetAddress().getAddress();
-
-						String nameC = 
-										String.valueOf(ccADDR[0]) + "_" + 
-										String.valueOf(ccADDR[1]) + "_" + 
-										String.valueOf(ccADDR[2]) + "_" + 
-										String.valueOf(ccADDR[3]) + "_" + 
-										socketC.getPort();
-
-						if (socketC != null) {
-							System.out.println("A new client is trying to connect : " + socketC);
-						}
-						
+						if (socketClient != null) {
+							System.out.println("A new client is trying to connect : " + socketClient);
+						}						
 												
 						// obtaining input and out streams
-						DataInputStream disC = new DataInputStream(socketC.getInputStream());
-						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
+						DataInputStream disC = new DataInputStream(socketClient.getInputStream());
+						DataOutputStream dosC = new DataOutputStream(socketClient.getOutputStream());
 
 						// Starts key exchange
 						byte[] SPubK = keyPair.getPublic().getEncoded();
@@ -126,57 +118,39 @@ class ServerImplementation {
 						// save the decryptedSymmetricKey for the connected client
 						SymmetricCryptoManager sCryptoManager = new SymmetricCryptoManager(decryptedSymmetricKey);
 						
-						// Test receiving encrypted data
-					    byte[] testBytes = Base64.getDecoder().decode(disC.readUTF());
-					    String msg = new String(sCryptoManager.decryptData(testBytes));
-					    System.out.println(msg);
+//						// Test receiving encrypted data
+//					    byte[] testBytes = Base64.getDecoder().decode(disC.readUTF());
+//					    String msg = new String(sCryptoManager.decryptData(testBytes));
+//					    System.out.println(msg);
 						
-//						if(KeyExchange(socketC, disC, dosC)) {
-//							//socketC.close();
-//						}
-						mapDOSClient.put(getIpSocket(socketC), dosC);
+						mapDOSClient.put(getIpSocket(socketClient), dosC);
 
-						// System.out.println("Assigning new thread client " + nameC);
-
-						String ipClient = socketC.getInetAddress().toString().substring(1);
-						Thread tC = new ClientHandler(disC, ipClient, socketC);
+						String ipClient = socketClient.getInetAddress().toString().substring(1);
+						Thread tC = new ClientHandler(disC, ipClient, socketClient, sCryptoManager);
 
 						//	VERIFICAR LISTA DE USARIOS 
 						// 		CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
 						// 		CRIAR DIRETORIOS PARA O CLIENT NOS STORAGES
-						String client = socketC.getInetAddress().getHostName() + "_" + socketC.getPort();
+						String client = socketClient.getInetAddress().getHostName() + "_" + socketClient.getPort();
 						listUsers();
 						if (!userExists(client)) {
 							addUserToList(client);
 						}
-						/*	 */	
 						
-
 						// create a new thread object
-						tC.setName(client);
+						tC.setName(client);						
 						tC.start();
 
 					} catch (Exception e) {
 						e.printStackTrace();
 						System.out.println("Socket Closed");
-						socketC.close();
+						socketClient.close();
 					}
 				}
 				ssc.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}
-
-		private boolean KeyExchange(Socket connection, DataInputStream in, DataOutputStream out){
-			try {
-				
-//				Mensagem msg = new Mensagem(keyPair.getPublic().getEncoded());
-				out.write(keyPair.getPublic().getEncoded());
-				
-			} catch (IOException e) {
-				e.printStackTrace();		}
-			return false;
 		}
 	}
 
@@ -230,6 +204,7 @@ class ServerImplementation {
 	class ClientHandler extends Thread {
 		final DataInputStream dis;
 		final Socket s;
+		final SymmetricCryptoManager sessionKey;
 
 //		final String ipServer;
 //		final String portaServer;
@@ -237,17 +212,17 @@ class ServerImplementation {
 		public String ipClient;
 
 		// Constructor
-		public ClientHandler(DataInputStream dis, String ipClient, Socket _s) {
+		public ClientHandler(DataInputStream dis, String ip, Socket connection, SymmetricCryptoManager key) {
+			this.sessionKey = key;
 			this.dis = dis;
-			this.ipClient = ipClient;
-			this.s = _s;
+			this.ipClient = ip;
+			this.s = connection;
 //			this.ipServer = ipServer;
 //			this.portaServer = portaServer;
 		}
 
 		@Override
 		public void run() {
-			System.out.println("executando run da thread ClientHandler");
 			boolean loop = true;
 			while (loop) {
 				try {
@@ -282,7 +257,7 @@ class ServerImplementation {
 					Mensagem m;
 					byte[] message;
 					DataOutputStream dos;
-					DataOutputStream stdos;
+					DataOutputStream stdos = null;
 					String portaStorage;
 					ArrayList<DataOutputStream> dosAll;
 					ArrayList<String> chaves;
@@ -401,9 +376,7 @@ class ServerImplementation {
 							String[] ipsAllStorages = Collections.list(mapDOSStorage.keys()).toArray(new String[0]);
 							ipStorage = splitEscolha[0];
 
-							stdos = null;
 							mapClientArq.put(m.getHeader().getNome(), this.ipClient);
-							System.out.println("writing req to storage: " + stdos.toString());
 							if ( isDiv(m.getHeader().getNome()) ) {
 								for(int i=0;i<ipsAllStorages.length;i++) {
 									stdos = mapDOSStorage.get(ipsAllStorages[i]);
@@ -413,6 +386,7 @@ class ServerImplementation {
 								stdos = mapDOSStorage.get(ipStorage);
 								stdos.write(message);
 							}
+							//stdos.close();
 							break;
 						}
 					}

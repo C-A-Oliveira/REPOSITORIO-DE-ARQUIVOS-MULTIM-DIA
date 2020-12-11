@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
+import crypto.AsymmetricCryptoManager;
 import crypto.SymmetricCryptoManager;
 import server.Mensagem;
 
@@ -23,7 +24,8 @@ public class Client {
 	public static final byte ENVIA_REQ = (byte) 0x04;
 	public static final byte ENVIA_ARQ_REP_CLIENT = (byte) 0x06;
 	public static final byte ENVIA_ARQ_DIV_CLIENT = (byte) 0x07;
-
+	static byte[] ServerPublicKey = new byte[294];
+	
 	public static void main(String[] args) throws IOException {
 		try {
 			Scanner scn = new Scanner(System.in);
@@ -57,6 +59,12 @@ public class Client {
 			DataInputStream dis = new DataInputStream(s.getInputStream());
 			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
+			dis.read(ServerPublicKey);
+			byte[] clientEncodedKey = sCryptoManager.getKey().getEncoded();
+			byte[] encryptedSymmetricKey = AsymmetricCryptoManager.encryptData(clientEncodedKey, ServerPublicKey);
+			dos.write(encryptedSymmetricKey);
+//			System.out.println(ServerPublicKey);			
+			
 			// Thread
 			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);
 			byte[] address = sIP.getAddress();
@@ -135,6 +143,16 @@ public class Client {
 		}
 	}
 
+	private boolean KeyExchange(Socket connection, DataInputStream in, DataOutputStream out) {
+		try {
+			System.out.println(DataInputStream.readUTF(in));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
+	}
+
 	// ============ METODOS UTILITARIOS =====================
 
 	// Retorna os bytes[] de um long
@@ -176,7 +194,7 @@ public class Client {
 		return bFile;
 	}
 
-	// Retorna os bytes[] do arquivo especificado
+	// Retorna os bytes[] do arquivo especificado 
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
 
@@ -253,6 +271,8 @@ class ServerHandler extends Thread {
 	}
 
 	// Cria o arquivo
+
+	
 	public static void writeArq(byte[] arq, String _nomeArq) {
 		System.out.println("CLIENT - Arquivo criado.");
 

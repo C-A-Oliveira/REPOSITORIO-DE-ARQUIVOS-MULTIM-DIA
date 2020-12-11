@@ -43,8 +43,9 @@ class ServerImplementation {
 	public static final String nomeArqFiles = "arqFiles.txt";
 
 	public static final Semaphore semaforoFiles = new Semaphore(1);
-	
+
 	private Vector<String> users = new Vector<String>();
+	private Vector<Key> usersKeys = new Vector<Key>();
 
 	// TODO: Usar ConcurrentHashMap inves de HashTable? HashTable possui metodos
 	// sincronizados
@@ -68,14 +69,13 @@ class ServerImplementation {
 		StorageListener storageListener = new StorageListener();
 		
 		generateKeyPair();
+	
 		listUsers();
 
 		clientListener.start();
 		storageListener.start();
 	}
 	
-	
-
 	class ClientListener extends Thread {
 		public ClientListener() {
 
@@ -108,13 +108,26 @@ class ServerImplementation {
 										socketC.getPort();
 
 						if (socketC != null) {
-							System.out.println("A new client is connected : " + socketC);
+							System.out.println("A new client is trying to connect : " + socketC);
 						}
-
+						
+												
 						// obtaining input and out streams
 						DataInputStream disC = new DataInputStream(socketC.getInputStream());
 						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
 
+
+						byte[] ClientEncodedKey = new byte[256];
+						byte[] SPubK = keyPair.getPublic().getEncoded();
+						dosC.write(SPubK,0,SPubK.length);
+						 System.out.println(SPubK.length);
+						disC.read(ClientEncodedKey);
+						byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(ClientEncodedKey, keyPair.getPrivate());
+
+						 System.out.println(decryptedSymmetricKey);
+//						if(KeyExchange(socketC, disC, dosC)) {
+//							//socketC.close();
+//						}
 						mapDOSClient.put(getIpSocket(socketC), dosC);
 
 						// System.out.println("Assigning new thread client " + nameC);
@@ -147,6 +160,17 @@ class ServerImplementation {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+
+		private boolean KeyExchange(Socket connection, DataInputStream in, DataOutputStream out){
+			try {
+				
+//				Mensagem msg = new Mensagem(keyPair.getPublic().getEncoded());
+				out.write(keyPair.getPublic().getEncoded());
+				
+			} catch (IOException e) {
+				e.printStackTrace();		}
+			return false;
 		}
 	}
 
@@ -217,7 +241,7 @@ class ServerImplementation {
 
 		@Override
 		public void run() {
-			// System.out.println("executando run da thread ClientHandler");
+			System.out.println("executando run da thread ClientHandler");
 			boolean loop = true;
 			while (loop) {
 				try {
@@ -734,7 +758,6 @@ class ServerImplementation {
 	}// Fim de storage handler
 
 	// ======================== METODOS de ServerImplementation=============================
-
 	public Boolean userTemAcesso(long user, String arq) {
 		boolean ok = false;
 
@@ -794,10 +817,6 @@ class ServerImplementation {
 		bufferFile.close();
 	}
 	
-	private void generateKeyPair() {
-		keyPair = AsymmetricCryptoManager.generateKeyPair();
-	}
-	
 	private void addUserToList(String user) throws IOException {
 		BufferedWriter file = new BufferedWriter(new FileWriter("src/server/clients.txt", true));
 		if(!userExists(user)) {
@@ -813,6 +832,10 @@ class ServerImplementation {
 		new File(PATH_STORAGE_02 + user + PATH_PAR).mkdirs();
 	}
 
+	private void generateKeyPair() {
+		keyPair = AsymmetricCryptoManager.generateKeyPair();
+	}
+	
 	private static void testAESEncryptionAndDecryption() {
 		try {
 

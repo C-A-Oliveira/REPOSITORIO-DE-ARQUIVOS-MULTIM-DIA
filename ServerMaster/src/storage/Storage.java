@@ -24,6 +24,7 @@ public class Storage {
 		Vector<String> lines = new Vector<String>();
 		while ((line = bfr.readLine()) != null)
 			lines.add(line);
+		bfr.close();
 
 		InetAddress serverIP = InetAddress.getByName(lines.get(0));
 		InetAddress storageIP_01 = InetAddress.getByName(lines.get(2));

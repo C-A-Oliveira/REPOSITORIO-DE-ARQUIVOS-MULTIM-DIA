@@ -60,13 +60,11 @@ public class Client {
 			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 			
 			// Starts keys exchange
-			String serverPKStr = dis.readUTF();
-			byte[] ServerPublicKey = Base64.getDecoder().decode(serverPKStr);
+			byte[] ServerPublicKey = Base64.getDecoder().decode(dis.readUTF());
 			byte[] clientEncodedKey =  sCryptoManager.getKey().getEncoded();
 			byte[] encryptedSymmetricKey = AsymmetricCryptoManager.encryptData(clientEncodedKey, ServerPublicKey);
 			dos.writeUTF(Base64.getEncoder().encodeToString(encryptedSymmetricKey));
-			
-			
+						
 			// Test sending encrypted data
 			String test = "troca de chave realizada com sucesso";
 			byte[] testBytes = sCryptoManager.encryptData(test.getBytes());
@@ -74,13 +72,10 @@ public class Client {
 			
 			// Thread
 			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);
-			byte[] address = sIP.getAddress();
-			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
-					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
-			t.setName(name);
-			// System.out.println("Iniciando Thread para recebimento de arquivos");
+			t.setName(cIP.getHostName());
 			t.start();
-
+			// System.out.println("Iniciando Thread para recebimento de arquivos");
+			
 			boolean loop = true;
 			while (loop) {
 

@@ -138,7 +138,7 @@ class ServerImplementation {
 						}
 						
 						// create a new thread object
-						tC.setName(client);						
+						tC.setName("CLIENT/"+client);						
 						tC.start();
 
 					} catch (Exception e) {
@@ -185,7 +185,7 @@ class ServerImplementation {
 						// System.out.println("Assigning new thread storage " + nameSt);
 						Thread tSt = new StorageHandler(disSt, socketSt);
 
-						tSt.setName(nameSt);
+						tSt.setName("STORAGE/"+nameSt);
 						tSt.start();
 					} catch (Exception e) {
 						e.printStackTrace();

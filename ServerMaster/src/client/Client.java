@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
+import crypto.SymmetricCryptoManager;
 import server.Mensagem;
 
 // Client class 
@@ -27,6 +28,7 @@ public class Client {
 		try {
 			Scanner scn = new Scanner(System.in);
 			String[] argumentos = new String[4];
+			SymmetricCryptoManager sKeyManager = new SymmetricCryptoManager();
 
 			//Arquivo de configuracao (argumentos)
 			BufferedReader bfr = new BufferedReader( new FileReader("clientConf.txt"));
@@ -94,6 +96,7 @@ public class Client {
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
 					bytes = getArq(pathArq.toString());
+					bytes = sKeyManager.encryptData(bytes);
 					break;
 				case "divisao":
 					pathArq = null;
@@ -102,6 +105,7 @@ public class Client {
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
 					bytes = getArq(pathArq.toString());
+					bytes = sKeyManager.encryptData(bytes);
 					break;
 				case "download":
 					modo = ENVIA_REQ;

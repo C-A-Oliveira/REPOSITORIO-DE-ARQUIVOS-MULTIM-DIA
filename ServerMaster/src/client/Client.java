@@ -9,8 +9,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Scanner;
 
+import crypto.AsymmetricCryptoManager;
+import crypto.SymmetricCryptoManager;
 import server.Mensagem;
 
 // Client class 
@@ -22,11 +25,12 @@ public class Client {
 	public static final byte ENVIA_REQ = (byte) 0x04;
 	public static final byte ENVIA_ARQ_REP_CLIENT = (byte) 0x06;
 	public static final byte ENVIA_ARQ_DIV_CLIENT = (byte) 0x07;
-
+	
 	public static void main(String[] args) throws IOException {
 		try {
 			Scanner scn = new Scanner(System.in);
 			String[] argumentos = new String[4];
+			SymmetricCryptoManager sCryptoManager = new SymmetricCryptoManager();
 
 			//Arquivo de configuracao (argumentos)
 			BufferedReader bfr = new BufferedReader( new FileReader("clientConf.txt"));
@@ -54,9 +58,22 @@ public class Client {
 			// obtaining input and out streams
 			DataInputStream dis = new DataInputStream(s.getInputStream());
 			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-
+			
+			// Starts keys exchange
+			String serverPKStr = dis.readUTF();
+			byte[] ServerPublicKey = Base64.getDecoder().decode(serverPKStr);
+			byte[] clientEncodedKey =  sCryptoManager.getKey().getEncoded();
+			byte[] encryptedSymmetricKey = AsymmetricCryptoManager.encryptData(clientEncodedKey, ServerPublicKey);
+			dos.writeUTF(Base64.getEncoder().encodeToString(encryptedSymmetricKey));
+			
+			
+			// Test sending encrypted data
+			String test = "troca de chave realizada com sucesso";
+			byte[] testBytes = sCryptoManager.encryptData(test.getBytes());
+			dos.writeUTF(Base64.getEncoder().encodeToString(testBytes));
+			
 			// Thread
-			Thread t = new ServerHandler(s, dis, dos);
+			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);
 			byte[] address = sIP.getAddress();
 			String name = String.valueOf(address[0]) + "." + String.valueOf(address[1]) + "."
 					+ String.valueOf(address[2]) + "." + String.valueOf(address[3]) + ":" + s.getPort();
@@ -93,7 +110,7 @@ public class Client {
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = getArq(pathArq.toString());
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
 					break;
 				case "divisao":
 					pathArq = null;
@@ -101,7 +118,7 @@ public class Client {
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = getArq(pathArq.toString());
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
 					break;
 				case "download":
 					modo = ENVIA_REQ;
@@ -131,6 +148,16 @@ public class Client {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private boolean KeyExchange(Socket connection, DataInputStream in, DataOutputStream out) {
+		try {
+			System.out.println(DataInputStream.readUTF(in));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	// ============ METODOS UTILITARIOS =====================
@@ -174,7 +201,7 @@ public class Client {
 		return bFile;
 	}
 
-	// Retorna os bytes[] do arquivo especificado
+	// Retorna os bytes[] do arquivo especificado 
 	public static byte[] getArq(String nomeArq) {
 		byte[] b;
 
@@ -191,16 +218,18 @@ class ServerHandler extends Thread {
 	final DataInputStream dis;
 	final DataOutputStream dos;
 	final Socket s;
+	final SymmetricCryptoManager sCryptoManager;
 
 	// Constantes do cabecalho (modo)
 	//public static final byte ENVIA_ARQ = (byte) 0x00;
 	public static final byte RECEBE_ARQ = (byte) 0x03;
 	public static final byte ENVIA_REQ = (byte) 0x04;
 
-	public ServerHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+	public ServerHandler(Socket s, DataInputStream dis, DataOutputStream dos, SymmetricCryptoManager sCryptoManager) {
 		this.s = s;
 		this.dis = dis;
 		this.dos = dos;
+		this.sCryptoManager = sCryptoManager;
 	}
 
 	@Override
@@ -229,7 +258,7 @@ class ServerHandler extends Thread {
 				byte mode = msg.getHeader().getMode();
 				// byte[] bUser = msg.getHeader().getBUser();
 				byte[] bNomeArq = msg.getHeader().getBNome();
-				byte[] body = msg.getBody();
+				byte[] body = sCryptoManager.decryptData(msg.getBody());
 				String nomeArq = new String(bNomeArq, StandardCharsets.UTF_8);
 				String[] split = nomeArq.split("/");
 				nomeArq = split[split.length-1]; //Pega so o nome do arquivo, sem diretorio
@@ -249,6 +278,8 @@ class ServerHandler extends Thread {
 	}
 
 	// Cria o arquivo
+
+	
 	public static void writeArq(byte[] arq, String _nomeArq) {
 		System.out.println("CLIENT - Arquivo criado.");
 

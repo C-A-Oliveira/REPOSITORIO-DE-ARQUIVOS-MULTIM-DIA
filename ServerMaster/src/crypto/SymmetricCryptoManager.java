@@ -10,7 +10,7 @@ public final class SymmetricCryptoManager {
 	private Key key;
 	
 	public SymmetricCryptoManager(byte[] encodedKey) {
-		this(new SecretKeySpec(encodedKey, "DES"));
+		this(new SecretKeySpec(encodedKey, "AES"));
 	}
 	
 	public SymmetricCryptoManager(Key key) {
@@ -22,7 +22,7 @@ public final class SymmetricCryptoManager {
 	}
 	
 	private static Key generateSymmetricKey() throws Exception {
-		KeyGenerator generator = KeyGenerator.getInstance("DES");
+		KeyGenerator generator = KeyGenerator.getInstance("AES");
 		return generator.generateKey();
 	}
 	

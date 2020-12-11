@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Scanner;
 
 import crypto.AsymmetricCryptoManager;
@@ -24,7 +25,6 @@ public class Client {
 	public static final byte ENVIA_REQ = (byte) 0x04;
 	public static final byte ENVIA_ARQ_REP_CLIENT = (byte) 0x06;
 	public static final byte ENVIA_ARQ_DIV_CLIENT = (byte) 0x07;
-	static byte[] ServerPublicKey = new byte[128];
 	
 	public static void main(String[] args) throws IOException {
 		try {
@@ -58,12 +58,19 @@ public class Client {
 			// obtaining input and out streams
 			DataInputStream dis = new DataInputStream(s.getInputStream());
 			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-
-			dis.read(ServerPublicKey);
-			byte[] clientEncodedKey = sCryptoManager.getKey().getEncoded();
+			
+			// Starts keys exchange
+			String serverPKStr = dis.readUTF();
+			byte[] ServerPublicKey = Base64.getDecoder().decode(serverPKStr);
+			byte[] clientEncodedKey =  sCryptoManager.getKey().getEncoded();
 			byte[] encryptedSymmetricKey = AsymmetricCryptoManager.encryptData(clientEncodedKey, ServerPublicKey);
-			dos.write(encryptedSymmetricKey);
-//			System.out.println(ServerPublicKey);			
+			dos.writeUTF(Base64.getEncoder().encodeToString(encryptedSymmetricKey));
+			
+			
+			// Test sending encrypted data
+			String test = "troca de chave realizada com sucesso";
+			byte[] testBytes = sCryptoManager.encryptData(test.getBytes());
+			dos.writeUTF(Base64.getEncoder().encodeToString(testBytes));
 			
 			// Thread
 			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);

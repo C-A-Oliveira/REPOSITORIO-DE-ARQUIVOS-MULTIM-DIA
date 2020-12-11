@@ -3,6 +3,7 @@ package server;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -84,7 +85,7 @@ class ServerImplementation {
 		@Override
 		public void run() {
 			try {
-				// testAESEncryptionAndDecryption();
+//				testAESEncryptionAndDecryption();
 
 				// server is listening on port 33333 and 33335
 				ServerSocket ssc = new ServerSocket(33333);
@@ -116,15 +117,20 @@ class ServerImplementation {
 						DataInputStream disC = new DataInputStream(socketC.getInputStream());
 						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
 
-
-						byte[] ClientEncodedKey = new byte[128];
+						// Starts key exchange
 						byte[] SPubK = keyPair.getPublic().getEncoded();
-						dosC.write(SPubK,0,SPubK.length);
-						 System.out.println(SPubK.length);
-						disC.read(ClientEncodedKey);
+						dosC.writeUTF(Base64.getEncoder().encodeToString(SPubK));
+						byte[] ClientEncodedKey = Base64.getDecoder().decode(disC.readUTF());
 						byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(ClientEncodedKey, keyPair.getPrivate());
-
-						 System.out.println(decryptedSymmetricKey);
+						
+						// save the decryptedSymmetricKey for the connected client
+						SymmetricCryptoManager sCryptoManager = new SymmetricCryptoManager(decryptedSymmetricKey);
+						
+						// Test receiving encrypted data
+					    byte[] testBytes = Base64.getDecoder().decode(disC.readUTF());
+					    String msg = new String(sCryptoManager.decryptData(testBytes));
+					    System.out.println(msg);
+						
 //						if(KeyExchange(socketC, disC, dosC)) {
 //							//socketC.close();
 //						}
@@ -855,6 +861,9 @@ class ServerImplementation {
 			// Server decode symmetric key
 			byte[] decryptedSymmetricKey = AsymmetricCryptoManager.decryptData(encryptedSymmetricKey,
 					keyPair.getPrivate());
+			
+			System.out.println(encodedKey.length);
+			System.out.println(decryptedSymmetricKey.length);
 
 			SymmetricCryptoManager serverManager = new SymmetricCryptoManager(decryptedSymmetricKey);
 

@@ -14,7 +14,7 @@ public class AsymmetricCryptoManager {
 	public static KeyPair generateKeyPair() {
 		try {
 			KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-			generator.initialize(2048);
+			generator.initialize(1024);
 			return generator.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();

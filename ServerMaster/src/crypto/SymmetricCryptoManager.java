@@ -23,6 +23,7 @@ public final class SymmetricCryptoManager {
 	
 	private static Key generateSymmetricKey() throws Exception {
 		KeyGenerator generator = KeyGenerator.getInstance("DES");
+		generator.init(128);
 		return generator.generateKey();
 	}
 	

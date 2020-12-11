@@ -117,7 +117,7 @@ class ServerImplementation {
 						DataOutputStream dosC = new DataOutputStream(socketC.getOutputStream());
 
 
-						byte[] ClientEncodedKey = new byte[256];
+						byte[] ClientEncodedKey = new byte[128];
 						byte[] SPubK = keyPair.getPublic().getEncoded();
 						dosC.write(SPubK,0,SPubK.length);
 						 System.out.println(SPubK.length);

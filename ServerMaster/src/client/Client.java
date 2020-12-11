@@ -24,7 +24,7 @@ public class Client {
 	public static final byte ENVIA_REQ = (byte) 0x04;
 	public static final byte ENVIA_ARQ_REP_CLIENT = (byte) 0x06;
 	public static final byte ENVIA_ARQ_DIV_CLIENT = (byte) 0x07;
-	static byte[] ServerPublicKey = new byte[294];
+	static byte[] ServerPublicKey = new byte[128];
 	
 	public static void main(String[] args) throws IOException {
 		try {

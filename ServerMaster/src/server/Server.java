@@ -125,8 +125,7 @@ class ServerImplementation {
 						
 						mapDOSClient.put(getIpSocket(socketClient), dosC);
 
-						String ipClient = socketClient.getInetAddress().toString().substring(1);
-						Thread tC = new ClientHandler(disC, ipClient, socketClient, sCryptoManager);
+						Thread tC = new ClientHandler(socketClient, sCryptoManager);
 
 						//	VERIFICAR LISTA DE USARIOS 
 						// 		CASO NÃO ESTEJA, ADICIONAR CLIENT NA LISTA DE USUARIOS
@@ -202,8 +201,9 @@ class ServerImplementation {
 
 // ClientHandler class
 	class ClientHandler extends Thread {
-		final DataInputStream dis;
-		final Socket s;
+		DataOutputStream dos;
+		DataInputStream dis;
+		final Socket connection;
 		final SymmetricCryptoManager sessionKey;
 
 //		final String ipServer;
@@ -212,11 +212,19 @@ class ServerImplementation {
 		public String ipClient;
 
 		// Constructor
-		public ClientHandler(DataInputStream dis, String ip, Socket connection, SymmetricCryptoManager key) {
+		public ClientHandler(Socket connection, SymmetricCryptoManager key) {
+			this.dis = null;
+			this.dos = null;
 			this.sessionKey = key;
-			this.dis = dis;
-			this.ipClient = ip;
-			this.s = connection;
+			try {
+				this.dos = new DataOutputStream(connection.getOutputStream());
+				this.dis = new DataInputStream(connection.getInputStream());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			this.ipClient = connection.getInetAddress().getHostName();
+			this.connection = connection;
 //			this.ipServer = ipServer;
 //			this.portaServer = portaServer;
 		}
@@ -256,42 +264,17 @@ class ServerImplementation {
 					String ipStorage;
 					Mensagem m;
 					byte[] message;
-					DataOutputStream dos;
-					DataOutputStream stdos = null;
-					String portaStorage;
+					DataOutputStream storageDataOutput = null;
 					ArrayList<DataOutputStream> dosAll;
 					ArrayList<String> chaves;
 					
 					// Logica
 					switch (mode) {
-//					case RECEBE_ARQ_CLIENT:
-//						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
-//
-//						// Escolha do storage
-//						String[] splitEscolha = escolhaStorageUpload();
-//						String ipStorage = splitEscolha[0];
-//						String portaStorage = splitEscolha[1];
-//
-//						DataOutputStream stdos = null;
-//						stdos = mapDOSStorage.get(ipStorage);
-//
-//						Mensagem m = new Mensagem(ENVIA_ARQ_STORAGE, bUser, bNomeArq, body);
-//						byte[] message = m.getMessage();
-//
-//						m.showMessage();
-//						
-//						System.out.println("writing arq to storage: " + stdos.toString());
-//						stdos.write(m.getMessage());
-//
-//						addArqFile(m.getHeader().getNome(), ipStorage);
-//
-//						// s.close();
-//						break;
 					case RECEBE_ARQ_REP_CLIENT:
 						// -- UPLOAD REPLICADO: Client (bytes arq) -> Server -> Storage
 
-						stdos = null;
-						//stdos = mapDOSStorage.get(ipStorage);
+						storageDataOutput = null;
+						//storageDataOutput = mapDOSStorage.get(ipStorage);
 						//TODO: isso nao era ideal ter nessa parte do codigo?
 						dosAll = new ArrayList<>();
 						chaves = Collections.list( mapDOSStorage.keys() ) ;
@@ -310,9 +293,9 @@ class ServerImplementation {
 						System.out.println("--");
 						
 						for(int i = 0 ; i<dosAll.size();i++) {
-							stdos = dosAll.get(i);
-							System.out.println("writing arq to storage: " + stdos.toString());
-							stdos.write(m.getMessage());
+							storageDataOutput = dosAll.get(i);
+							System.out.println("writing arq to storage: " + storageDataOutput.toString());
+							storageDataOutput.write(m.getMessage());
 							addArqFile(m.getHeader().getNome(), "REP", chaves.get(i));
 						}
 
@@ -324,8 +307,8 @@ class ServerImplementation {
 						// -- UPLOAD: Client (bytes arq) -> Server -> Storage
 
 
-						stdos = null;
-						//stdos = mapDOSStorage.get(ipStorage);
+						storageDataOutput = null;
+						//storageDataOutput = mapDOSStorage.get(ipStorage);
 						//TODO: isso nao era ideal ter nessa parte do codigo?
 						dosAll = new ArrayList<>();
 						chaves = Collections.list( mapDOSStorage.keys() ) ;
@@ -355,9 +338,9 @@ class ServerImplementation {
 							System.out.println(">>");
 							m.showMessage();
 							System.out.println(">>");
-							stdos = dosAll.get(i);
-							System.out.println("writing arq to storage: " + stdos.toString());
-							stdos.write(m.getMessage());
+							storageDataOutput = dosAll.get(i);
+							System.out.println("writing arq to storage: " + storageDataOutput.toString());
+							storageDataOutput.write(m.getMessage());
 							contadorDiv+= body.length/tam;
 							addArqFile(m.getHeader().getNome(), "DIV"+i, chaves.get(i));
 						}
@@ -379,21 +362,21 @@ class ServerImplementation {
 							mapClientArq.put(m.getHeader().getNome(), this.ipClient);
 							if ( isDiv(m.getHeader().getNome()) ) {
 								for(int i=0;i<ipsAllStorages.length;i++) {
-									stdos = mapDOSStorage.get(ipsAllStorages[i]);
-									stdos.write(message);	
+									storageDataOutput = mapDOSStorage.get(ipsAllStorages[i]);
+									storageDataOutput.write(message);	
 								}
 							}else {
-								stdos = mapDOSStorage.get(ipStorage);
-								stdos.write(message);
+								storageDataOutput = mapDOSStorage.get(ipStorage);
+								storageDataOutput.write(message);
 							}
-							//stdos.close();
+							//storageDataOutput.close();
 							break;
 						}
 					}
 				} catch (SocketException se) {
 					se.printStackTrace();
 					try {
-						this.s.close();
+						this.connection.close();
 						loop = false;
 						break;
 					} catch (IOException e) {

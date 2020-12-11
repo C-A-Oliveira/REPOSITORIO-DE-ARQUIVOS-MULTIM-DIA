@@ -53,11 +53,11 @@ public class Client {
 	        InetAddress cIP = InetAddress.getByName(argumentos[2]);
 	    	
 			// establish the connection
-			Socket s = new Socket(sIP, sPort, cIP, cPort);
+			Socket connection = new Socket(sIP, sPort, cIP, cPort);
 
 			// obtaining input and out streams
-			DataInputStream dis = new DataInputStream(s.getInputStream());
-			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+			DataInputStream dis = new DataInputStream(connection.getInputStream());
+			DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
 			
 			// Starts keys exchange
 			byte[] ServerPublicKey = Base64.getDecoder().decode(dis.readUTF());
@@ -71,7 +71,7 @@ public class Client {
 			dos.writeUTF(Base64.getEncoder().encodeToString(testBytes));
 			
 			// Thread
-			Thread t = new ServerHandler(s, dis, dos, sCryptoManager);
+			Thread t = new ServerHandler(connection, dis, dos, sCryptoManager);
 			t.setName(cIP.getHostName());
 			t.start();
 			// System.out.println("Iniciando Thread para recebimento de arquivos");
@@ -86,7 +86,6 @@ public class Client {
 				System.out.println("Digite 'download' para baixar um arquivo.");
 				System.out.println("Digite 'sair' para sair.");
 				String opcao = scn.nextLine();
-				byte modo = (byte) 0x00;
 				byte[] bytes = null;
 				String nomeArq = null;
 				Path pathArq = null;
@@ -101,39 +100,39 @@ public class Client {
 //					break;
 				case "replicacao":
 					pathArq = null;
-					modo = ENVIA_ARQ_REP_CLIENT;
+
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));					
+					byte[] outputPackageR = new Mensagem(ENVIA_ARQ_REP_CLIENT, id, nomeArq, bytes).getMessage();
+					dos.write(outputPackageR);
 					break;
 				case "divisao":
 					pathArq = null;
-					modo = ENVIA_ARQ_DIV_CLIENT;
 					System.out.println("Escreva o nome do arquivo a ser enviado: ");
 					pathArq = Paths.get(scn.nextLine());
 					nomeArq = pathArq.getFileName().toString();
-					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));
+					bytes = sCryptoManager.encryptData(getArq(pathArq.toString()));				
+					byte[] outputPackageF = new Mensagem(ENVIA_ARQ_DIV_CLIENT, id, nomeArq, bytes).getMessage();
+					dos.write(outputPackageF);
 					break;
 				case "download":
-					modo = ENVIA_REQ;
 					System.out.println("Escreva o nome do arquivo a ser baixado: ");
 					nomeArq = scn.nextLine();
-					bytes = new byte[0];
+					bytes = new byte[0];		
+					byte[] outputPackageD = new Mensagem(ENVIA_REQ, id, nomeArq, bytes).getMessage();
+					dos.write(outputPackageD);
 					break;
-				case "closed":
-					System.out.println("Fechando conexao: " + s);
-					s.close();
+				case "sair":
+					System.out.println("Fechando conexao: " + connection);
+					connection.close();
 					System.out.println("Conexao fechada.");
 					loop = false;
 					break;
-				}
-
-				if (opcao != "closed") {
-					Mensagem m = new Mensagem(modo, id, nomeArq, bytes);
-
-					byte[] message = m.getMessage();
-					dos.write(message);
+				default:
+					System.out.println("Invalid input given by user! Try again!");
+					break;
 				}
 			}
 			// closing resources
@@ -145,15 +144,6 @@ public class Client {
 		}
 	}
 
-	private boolean KeyExchange(Socket connection, DataInputStream in, DataOutputStream out) {
-		try {
-			System.out.println(DataInputStream.readUTF(in));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return false;
-	}
 
 	// ============ METODOS UTILITARIOS =====================
 
